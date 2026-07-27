@@ -1,0 +1,21 @@
+# Python cache and temporary files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+ENV/
+env/
+
+# Project-specific ignores
+exports/*
+!exports/.gitkeep
+graphics/AI Newgen Faces/*
+!graphics/AI Newgen Faces/.gitkeep
+config_local.json
+mock_export.rtf
+
+# OS generated files
+.DS_Store
+Thumbs.db
