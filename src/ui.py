@@ -130,9 +130,9 @@ class FMGeneratorUI:
         self.status_title_lbl.pack(anchor="w")
 
         # Stats sublabels
-        self.stats_lbl = tk.Label(status_card, text="Faces Generated: 0 | Queued: 0", font=("Segoe UI", 9), 
-                                  fg=self.fg_muted, bg=self.bg_panel, padx=15, pady=(0, 8))
-        self.stats_lbl.pack(anchor="w")
+        self.stats_lbl = tk.Label(status_card, text="Faces Generated: 0 | Queued: 0", font=("Segoe UI", 9),
+                                  fg=self.fg_muted, bg=self.bg_panel, padx=15)
+        self.stats_lbl.pack(anchor="w", pady=(0, 8))
 
         # Action Buttons (Right)
         btn_frame = tk.Frame(control_status_frame, bg=self.bg_dark)
