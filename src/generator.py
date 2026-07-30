@@ -13,28 +13,34 @@ class FaceGenerator:
         """
         Asynchronously downloads a single AI generated face from Pollinations.ai.
         Uses the player's Unique ID (UID) as the seed for visual consistency.
+        Retries up to 3 times on network failure and bypasses Windows SSL certificate issues.
         """
-        # Encode prompt for URL
         encoded_prompt = urllib.parse.quote(prompt)
-        # Using Flux/Stable Diffusion via Pollinations with seed mapping
         url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={uid}&nologo=true&private=true"
-        
         filepath = os.path.join(self.graphics_dir, f"{uid}.png")
 
         # Limit concurrent downloads to avoid rate limits
         async with self.semaphore:
-            try:
-                async with session.get(url, timeout=30) as response:
-                    if response.status == 200:
-                        content = await response.read()
-                        # Write the image to disk
-                        with open(filepath, "wb") as f:
-                            f.write(content)
-                        return {"uid": uid, "status": "success", "file": filepath}
-                    else:
-                        return {"uid": uid, "status": "failed", "error": f"HTTP {response.status}"}
-            except Exception as e:
-                return {"uid": uid, "status": "failed", "error": str(e)}
+            err_msg = "Unknown error"
+            for attempt in range(1, 4):
+                try:
+                    # ssl=False bypasses Windows SSL verification issues; timeout is 30s
+                    async with session.get(url, timeout=30, ssl=False) as response:
+                        if response.status == 200:
+                            content = await response.read()
+                            with open(filepath, "wb") as f:
+                                f.write(content)
+                            return {"uid": uid, "status": "success", "file": filepath}
+                        else:
+                            err_msg = f"HTTP {response.status}"
+                except Exception as e:
+                    err_msg = f"{type(e).__name__}: {str(e)}"
+                
+                # Wait 1 second before retrying
+                if attempt < 3:
+                    await asyncio.sleep(1.0)
+            
+            return {"uid": uid, "status": "failed", "error": err_msg}
 
     async def generate_faces_async(self, players_to_generate, prompt_template, progress_callback=None):
         """
