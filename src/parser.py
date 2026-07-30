@@ -250,19 +250,10 @@ class PlayerParser:
 
     @staticmethod
     def _parse_text_content(text):
-        # FM text exports are usually tab-separated or pipe-separated
-        lines = [line.strip() for line in text.splitlines() if line.strip()]
-        if not lines:
+        rows = PlayerParser._extract_table_rows(text)
+        if not rows:
             return []
 
-        # Detect separator (tab or pipe)
-        first_line = lines[0]
-        separator = "\t"
-        if "|" in first_line:
-            separator = "|"
-
-        # Split cells
-        rows = [[cell.strip() for cell in line.split(separator)] for line in lines]
         headers = [h.lower() for h in rows[0]]
         
         uid_idx = PlayerParser._find_column_index(headers, ["id", "uid", "unique id"])
@@ -296,6 +287,32 @@ class PlayerParser:
             players.append(player)
 
         return players
+
+    @staticmethod
+    def _extract_table_rows(text):
+        """
+        Builds table rows from FM exports. Tab/text exports use one row per line;
+        RTF printouts often collapse the whole pipe table onto a single line with
+        dashed separator rows between entries.
+        """
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if not lines:
+            return []
+
+        combined = "\n".join(lines)
+        if "|" in combined and re.search(r"\|\s*-{5,}", combined):
+            parts = re.split(r"\|\s*-{10,}[^|]*\|", combined)
+            rows = []
+            for part in parts:
+                cells = [cell.strip() for cell in part.split("|") if cell.strip()]
+                if cells:
+                    rows.append(cells)
+            if len(rows) > 1:
+                return rows
+
+        first_line = lines[0]
+        separator = "|" if "|" in first_line else "\t"
+        return [[cell.strip() for cell in line.split(separator)] for line in lines]
 
     @staticmethod
     def _find_column_index(headers, variants):
