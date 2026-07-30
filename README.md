@@ -53,7 +53,7 @@ You need **Python 3.10+** installed on your system.
    ```
 3. Run the application:
    ```cmd
-   python src/app.py
+   python -m src.app
    ```
 4. (Optional) Run the commit helper to save changes to your GitHub:
    ```cmd
@@ -68,7 +68,7 @@ You need **Python 3.10+** installed on your system.
    ```
 3. Run the application:
    ```bash
-   python3 src/app.py
+   python3 -m src.app
    ```
 4. (Optional) Run the commit helper:
    ```bash

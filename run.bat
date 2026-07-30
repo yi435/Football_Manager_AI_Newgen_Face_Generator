@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0"
 title FM AI Newgen Generator Launcher
 echo ===================================================
 echo   Football Manager AI Newgen Generator Launcher
@@ -35,7 +36,7 @@ if %errorlevel% neq 0 (
 :: Run the application
 echo.
 echo Starting FM AI Newgen Generator...
-python src/app.py
+python -m src.app
 if %errorlevel% neq 0 (
     echo.
     echo [ERROR] Application crashed or stopped with an error code.
