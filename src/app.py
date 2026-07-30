@@ -161,6 +161,28 @@ class FMGeneratorApp:
                             players_to_generate.append(p)
                             player_milestones[uid] = current_milestone
 
+                # 3b. Load failed downloads queue (App Cache & Retry)
+                failed_downloads_path = os.path.join(graphics_dir, "failed_downloads.json")
+                failed_players = {}
+                if os.path.exists(failed_downloads_path):
+                    try:
+                        with open(failed_downloads_path, "r", encoding="utf-8") as f:
+                            failed_players = json.load(f)
+                    except Exception as e:
+                        self.ui.log(f"[Warning] Failed to load failed_downloads.json: {e}")
+
+                # Merge currently failed players into players_to_generate if they aren't already there
+                to_generate_uids = {p["uid"] for p in players_to_generate}
+                added_from_failed = 0
+                for f_uid, f_player in failed_players.items():
+                    if f_uid not in to_generate_uids:
+                        players_to_generate.append(f_player)
+                        to_generate_uids.add(f_uid)
+                        added_from_failed += 1
+
+                if added_from_failed > 0:
+                    self.ui.log(f"[Cache] Added {added_from_failed} previously failed downloads to the retry queue.")
+
                 if not players_to_generate:
                     self.ui.log("[Success] All players in this list already have faces matching their age milestone. Nothing to do!")
                     self.ui.update_progress(0, 0, "Ready")
@@ -174,13 +196,21 @@ class FMGeneratorApp:
                 
                 # Callback to update UI during download progress
                 def on_progress(count, total, result):
+                    nonlocal failed_players
                     self.ui.update_progress(count, total, f"Downloading faces...")
+                    uid = result["uid"]
                     if result["status"] == "success":
                         # Add newly generated face to xml maps
-                        existing_mappings[result["uid"]] = result["uid"]
+                        existing_mappings[uid] = uid
+                        if uid in failed_players:
+                            del failed_players[uid]
                         self.ui.update_stats(len(existing_mappings), total - count)
                     else:
-                        self.ui.log(f"[Error] Failed to generate face for UID {result['uid']}: {result['error']}")
+                        self.ui.log(f"[Error] Failed to generate face for UID {uid}: {result['error']}")
+                        # Save player details to failed downloads queue for future retry
+                        p_detail = next((p for p in players_to_generate if p["uid"] == uid), None)
+                        if p_detail:
+                            failed_players[uid] = p_detail
 
                 # Run asynchronous download in standard thread loop
                 asyncio.run(generator.generate_faces_async(
@@ -189,10 +219,18 @@ class FMGeneratorApp:
                     on_progress
                 ))
 
-                # 5. Save XML Maps and Metadata
+                # 5. Save XML Maps, Metadata, and Failed Downloads Queue
                 xml_manager.save_mappings(existing_mappings)
                 with open(metadata_path, "w", encoding="utf-8") as f:
                     json.dump(player_milestones, f, indent=2)
+                
+                try:
+                    with open(failed_downloads_path, "w", encoding="utf-8") as f:
+                        json.dump(failed_players, f, indent=2)
+                    if failed_players:
+                        self.ui.log(f"[Cache] Saved {len(failed_players)} failed downloads to queue for retry next time.")
+                except Exception as e:
+                    self.ui.log(f"[Warning] Failed to save failed_downloads.json: {e}")
 
                 self.ui.log(f"[Success] Completed batch. Total faces mapped: {len(existing_mappings)}")
                 self.ui.update_progress(0, 0, "Complete!")
