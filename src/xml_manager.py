@@ -29,7 +29,7 @@ class XMLManager:
                         # Extract the UID from the target path: "graphics/pictures/person/{UID}/portrait"
                         parts = to_val.split("/")
                         if len(parts) >= 4:
-                            uid = parts[3]
+                            uid = parts[3].replace("r-", "")
                             mappings[uid] = from_val
         except Exception as e:
             print(f"Error reading config.xml: {e}. Starting with empty mappings.")
@@ -55,7 +55,7 @@ class XMLManager:
         # Populate records sorted by UID
         for uid in sorted(mappings.keys(), key=lambda x: int(x) if x.isdigit() else x):
             from_filename = mappings[uid]
-            target_path = f"graphics/pictures/person/{uid}/portrait"
+            target_path = f"graphics/pictures/person/r-{uid}/portrait"
             ET.SubElement(maps_list, "record", {"from": from_filename, "to": target_path})
 
         # Convert to string and prettify
