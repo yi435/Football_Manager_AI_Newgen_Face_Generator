@@ -207,7 +207,8 @@ class FMGeneratorApp:
                             del failed_players[uid]
                         self.ui.update_stats(len(existing_mappings), total - count)
                     else:
-                        self.ui.log(f"[Error] Failed to generate face for UID {uid}: {result['error']}")
+                        friendly_error = self.translate_error(result["error"])
+                        self.ui.log(f"[Error] Failed for UID {uid}: {friendly_error}")
                         # Save player details to failed downloads queue for future retry
                         p_detail = next((p for p in players_to_generate if p["uid"] == uid), None)
                         if p_detail:
@@ -291,6 +292,25 @@ class FMGeneratorApp:
                 self.ui.log(f"[Warning] Failed to reload skin: {e}")
         else:
             self.ui.log("[Info] Auto-reload skin hotkey is only supported on Windows. Please press Shift + R manually in FM.")
+
+    def translate_error(self, error_str):
+        """
+        Translates raw network exceptions or HTTP codes into clean user-facing explanations.
+        """
+        if "429" in error_str:
+            return "HTTP 429 (Rate Limited: Pollinations.ai is busy. Staggered queue will auto-retry)"
+        elif "400" in error_str:
+            return "HTTP 400 (Bad Request: The prompt formatting is invalid)"
+        elif any(code in error_str for code in ["500", "502", "503", "504"]):
+            return f"{error_str} (Server Error: Pollinations.ai is currently overloaded. Retrying...)"
+        elif "ClientConnectorCertificateError" in error_str or "SSLCertVerificationError" in error_str:
+            return "SSL Certificate verification failed (Your Windows root certificates are out of sync. Bypassing SSL...)"
+        elif "ClientConnectorError" in error_str or "ServerDisconnectedError" in error_str:
+            return "Connection Failed (Could not establish connection. Please check your internet connection/firewall)"
+        elif "TimeoutError" in error_str:
+            return "Timeout Error (The generation server took too long. Retrying...)"
+        else:
+            return f"Unexpected Error ({error_str})"
 
 if __name__ == "__main__":
     root = tk.Tk()
