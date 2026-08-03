@@ -2,6 +2,6 @@
   "watch_directory": "./exports",
   "graphics_directory": "./graphics/AI Newgen Faces",
   "face_style": "professional headshot photo of a male [AGE]-year-old [NATIONALITY] football player, [PERSONALITY], athletic build, realistic face, highly detailed skin texture, professional sports photography, neutral background",
-  "concurrency_limit": 5,
+  "concurrency_limit": 1,
   "auto_reload_skin_hotkey": false
 }

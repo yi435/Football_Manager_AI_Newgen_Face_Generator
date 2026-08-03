@@ -4,7 +4,7 @@ import urllib.parse
 import aiohttp
 
 class FaceGenerator:
-    def __init__(self, graphics_dir, concurrency_limit=5):
+    def __init__(self, graphics_dir, concurrency_limit=1):
         self.graphics_dir = graphics_dir
         self.semaphore = asyncio.Semaphore(concurrency_limit)
         os.makedirs(self.graphics_dir, exist_ok=True)
@@ -13,7 +13,7 @@ class FaceGenerator:
         """
         Asynchronously downloads a single AI generated face from Pollinations.ai.
         Uses the player's Unique ID (UID) as the seed for visual consistency.
-        Retries up to 3 times, handles HTTP 429 rate limiting using exponential backoff,
+        Retries up to 5 times, handles HTTP 429 rate limiting using exponential backoff with jitter,
         staggers concurrent requests, and bypasses Windows SSL issues.
         """
         import random
@@ -36,7 +36,7 @@ class FaceGenerator:
                 "Referer": "https://pollinations.ai/",
             }
 
-            for attempt in range(1, 4):
+            for attempt in range(1, 6):
                 try:
                     async with session.get(url, headers=headers, timeout=30, ssl=False) as response:
                         if response.status == 200:
@@ -46,8 +46,8 @@ class FaceGenerator:
                             return {"uid": uid, "status": "success", "file": filepath}
                         elif response.status == 429:
                             err_msg = "HTTP 429 (Rate Limited)"
-                            # Wait and backoff
-                            await asyncio.sleep(backoff_delay)
+                            # Wait and backoff with random jitter to break request cycles
+                            await asyncio.sleep(backoff_delay + random.uniform(1.0, 3.0))
                             backoff_delay *= 2.0
                             continue
                         else:
@@ -56,8 +56,8 @@ class FaceGenerator:
                     err_msg = f"{type(e).__name__}: {str(e)}"
                 
                 # Wait 2 seconds before retrying on general errors
-                if attempt < 3:
-                    await asyncio.sleep(2.0)
+                if attempt < 5:
+                    await asyncio.sleep(2.0 + random.uniform(0.5, 1.5))
             
             # Append URL to error message for debugging
             err_msg_with_url = f"{err_msg} (URL: {url})"
