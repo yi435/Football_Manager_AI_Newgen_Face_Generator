@@ -29,9 +29,16 @@ class FaceGenerator:
             err_msg = "Unknown error"
             backoff_delay = 5.0  # Initial sleep time in seconds for HTTP 429
             
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Referer": "https://pollinations.ai/",
+            }
+
             for attempt in range(1, 4):
                 try:
-                    async with session.get(url, timeout=30, ssl=False) as response:
+                    async with session.get(url, headers=headers, timeout=30, ssl=False) as response:
                         if response.status == 200:
                             content = await response.read()
                             with open(filepath, "wb") as f:
@@ -52,7 +59,9 @@ class FaceGenerator:
                 if attempt < 3:
                     await asyncio.sleep(2.0)
             
-            return {"uid": uid, "status": "failed", "error": err_msg}
+            # Append URL to error message for debugging
+            err_msg_with_url = f"{err_msg} (URL: {url})"
+            return {"uid": uid, "status": "failed", "error": err_msg_with_url}
 
     async def generate_faces_async(self, players_to_generate, prompt_template, progress_callback=None):
         """
