@@ -327,7 +327,6 @@ class PromptBuilder:
     def build_prompt(player, prompt_template):
         """
         Creates a custom prompt based on the player details and the base template.
-        Generates highly descriptive, realistic, and non-redundant sports portraits.
         """
         uid = player["uid"]
         age = player["age"]
@@ -341,9 +340,10 @@ class PromptBuilder:
         region = nat_info["region"]
 
         # Step 2: Establish the base seed from UID to keep features consistent
+        # We pass the seed as a hash parameter in generator.py
         random.seed(int(uid))
 
-        # Step 3: Choose demographic features based on weights
+        # Step 3: Choose demographic features based on weights (Weighted Demographics)
         preset_region = region
         if nat_code in DEMOGRAPHIC_WEIGHTS:
             choices = DEMOGRAPHIC_WEIGHTS[nat_code]
@@ -357,10 +357,8 @@ class PromptBuilder:
         
         # Pick physical attributes
         skin_tone = profile["skin"]
-        hair_color_raw = random.choice(profile["hair"])
-        hair_color = hair_color_raw.replace(" hair", "").strip()
-        eye_color_raw = random.choice(profile["eyes"])
-        eye_color = eye_color_raw.replace(" eyes", "").strip()
+        hair_color = random.choice(profile["hair"])
+        eye_color = random.choice(profile["eyes"])
 
         # Step 4: Handle Ancestry / Dual Nationality
         ancestry_desc = ""
@@ -370,66 +368,40 @@ class PromptBuilder:
                 ancestry_desc = f", with {sec_info['adjective']} ancestral origins"
 
         # Step 5: Map visual attributes based on Personality
-        hair_style = ""
-        expression_details = "neutral focused expression"
-        vibe_details = "looking determined"
-        scar_desc = ""
-
+        personality_details = "neutral expression, athletic styling"
+        
         # Friendly/Professional personalities
         if any(p in personality for p in ["citizen", "professional", "resolute", "perfectionist", "iron"]):
-            hair_style = random.choice(["neatly combed ", "well-groomed ", "neat clean-cut "])
-            expression_details = random.choice(["friendly confident smile", "polite warm smile"])
-            vibe_details = "looking highly professional and disciplined"
+            personality_details = "neat clean haircut, clean-shaven, tidy and well-presented, confident professional look, friendly smile"
         # Aggressive/Bad personalities
         elif any(p in personality for p in ["temperamental", "confrontational", "outspoken", "unambitious", "slack"]):
-            hair_style = random.choice(["slightly messy ", "textured casual ", "modern textured "])
-            expression_details = random.choice(["stern intense expression", "serious focused look"])
-            vibe_details = "looking fierce and determined"
-            # 25% chance of a minor scar for aggressive players
-            if random.random() < 0.25:
-                scar_desc = ", with a small faint scar on his cheek"
+            personality_details = "stern serious look, slightly messy haircut, intense eyes, rugged appearance"
+            # 20% chance of a minor scar for aggressive players
+            if random.random() < 0.2:
+                personality_details += ", small faint scar on cheek"
         # Happy/Warm personalities
         elif any(p in personality for p in ["jovial", "spirited", "charismatic"]):
-            hair_style = random.choice(["relaxed ", "casual styled "])
-            expression_details = "big happy smile, cheerful laughing eyes"
-            vibe_details = "looking friendly and approachable"
-        # Casual/Slack personalities
-        elif any(p in personality for p in ["casual", "slack", "unambitious"]):
-            hair_style = "tousled casual "
-            expression_details = "relaxed calm expression"
-            vibe_details = "looking laid-back"
-        # Default
-        else:
-            hair_style = "athletic short "
-            expression_details = "neutral focused look"
-            vibe_details = "looking determined"
-
-        # Format clean hair and eye descriptions
-        hair_desc = f"{hair_style}{hair_color} hair"
-        eyes_desc = f"{eye_color} eyes"
+            personality_details = "happy warm smiling facial expression, friendly laughing eyes"
 
         # Step 6: Age milestones adaptations
         age_int = int(age) if age.isdigit() else 16
-        beard_style = "clean-shaven face"
+        beard_style = "clean-shaven"
         
         # Milestone updates
         if age_int >= 20:
+            # High beard density probability for Mediterranean, Middle East, South America
             if preset_region in ["MIDDLE_EAST", "SOUTH_EUROPE", "SOUTH_AMERICA"]:
-                beard_style = random.choice(["thick heavy stubble", "light stubble beard", "clean-shaven face"])
+                beard_style = random.choice(["thick heavy stubble", "light beard", "clean-shaven"])
             else:
-                beard_style = random.choice(["light stubble", "clean-shaven face"])
+                beard_style = random.choice(["light stubble", "clean-shaven"])
         if age_int >= 24:
             if preset_region in ["MIDDLE_EAST", "SOUTH_EUROPE", "SOUTH_AMERICA"]:
-                beard_style = random.choice(["full well-groomed beard", "thick beard", "light stubble beard"])
+                beard_style = random.choice(["full well-groomed beard", "thick beard", "light stubble"])
             else:
-                beard_style = random.choice(["short trimmed beard", "light stubble beard", "clean-shaven face"])
+                beard_style = random.choice(["short trimmed beard", "light stubble", "clean-shaven"])
 
         # Combine all physical details into a cohesive player description
-        player_desc = (
-            f"with {hair_desc} and {eyes_desc}, "
-            f"{profile['ethnicity']} with {skin_tone}, "
-            f"{beard_style}, {expression_details}, {vibe_details}{scar_desc}{ancestry_desc}"
-        )
+        player_desc = f"{skin_tone}, {hair_color}, {eye_color}, {beard_style}, {personality_details}{ancestry_desc}"
 
         # Replace placeholders in template
         prompt = prompt_template
