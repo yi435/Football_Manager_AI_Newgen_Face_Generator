@@ -1,6 +1,5 @@
 import os
-import xml.etree.ElementTree as ET
-from xml.dom import minidom
+import re
 
 class XMLManager:
     def __init__(self, graphics_dir):
@@ -10,27 +9,28 @@ class XMLManager:
     def load_mappings(self):
         """
         Reads the config.xml file and returns a dictionary of mappings: {player_uid: image_filename}
+        Uses robust regex parsing to prevent XML structure errors from crashing the load process.
         """
         mappings = {}
         if not os.path.exists(self.config_path):
             return mappings
 
         try:
-            tree = ET.parse(self.config_path)
-            root = tree.getroot()
-            
-            # Find the <list id="maps"> tag
-            maps_list = root.find(".//list[@id='maps']")
-            if maps_list is not None:
-                for record in maps_list.findall("record"):
-                    from_val = record.get("from")
-                    to_val = record.get("to")
-                    if from_val and to_val:
-                        # Extract the UID from the target path: "graphics/pictures/person/{UID}/portrait"
-                        parts = to_val.split("/")
-                        if len(parts) >= 4:
-                            uid = parts[3].replace("r-", "")
-                            mappings[uid] = from_val
+            with open(self.config_path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+
+            # Find all <record from="..." to="..."/> entries.
+            # Handles different spacing, quotes, and case-insensitivity.
+            pattern = re.compile(r'<record\s+from=["\']([^"\']+)["\']\s+to=["\']([^"\']+)["\']\s*/?>', re.IGNORECASE)
+            for match in pattern.finditer(content):
+                from_val = match.group(1)
+                to_val = match.group(2)
+                
+                # Extract the UID from the target path: "graphics/pictures/person/r-{UID}/portrait"
+                parts = to_val.split("/")
+                if len(parts) >= 4:
+                    uid = parts[3].replace("r-", "")
+                    mappings[uid] = from_val
         except Exception as e:
             print(f"Error reading config.xml: {e}. Starting with empty mappings.")
         
@@ -38,44 +38,38 @@ class XMLManager:
 
     def save_mappings(self, mappings):
         """
-        Writes the mappings dictionary back to config.xml with clean indentation.
+        Writes the mappings dictionary back to config.xml using a clean,
+        bulletproof template that matches the community standard (NewGAN/fmXML).
         """
-        # Ensure directories exist
+        # Ensure target graphics directories exist
         os.makedirs(self.graphics_dir, exist_ok=True)
 
-        root = ET.Element("record")
-        
-        # Add the standard FM headers
-        preload = ET.SubElement(root, "boolean", {"id": "preload", "value": "false"})
-        amap = ET.SubElement(root, "boolean", {"id": "amap", "value": "false"})
-        
-        # Add the list container
-        maps_list = ET.SubElement(root, "list", {"id": "maps"})
-        
-        # Populate records sorted by UID
+        lines = []
+        lines.append("<record>")
+        lines.append("\t<!-- resource info -->")
+        lines.append('\t<boolean id="preload" value="false"/>')
+        lines.append('\t<boolean id="amap" value="false"/>')
+        lines.append("")
+        lines.append("\t<!-- picture mappings -->")
+        lines.append("\t<!-- maps link user to game -->")
+        lines.append('\t<list id="maps">')
+
+        # Populate records sorted by UID numerically/alphabetically
         for uid in sorted(mappings.keys(), key=lambda x: int(x) if x.isdigit() else x):
             from_filename = mappings[uid]
-            target_path = f"graphics/pictures/person/r-{uid}/portrait"
-            ET.SubElement(maps_list, "record", {"from": from_filename, "to": target_path})
+            # Maps the image filename directly to the person UID with the required 'r-' prefix for FM24
+            lines.append(f'\t\t<record from="{from_filename}" to="graphics/pictures/person/r-{uid}/portrait"/>')
 
-        # Convert to string and prettify
-        raw_xml = ET.tostring(root, encoding="utf-8")
-        parsed = minidom.parseString(raw_xml)
-        pretty_xml = parsed.toprettyxml(indent="    ", encoding="utf-8").decode("utf-8")
-        
-        # minidom's toprettyxml adds a declaration line "<?xml version="1.0" ?>" which FM doesn't require,
-        # but it is harmless. If we want it identical to FM standard, we can strip the first line.
-        lines = pretty_xml.splitlines()
-        if lines and lines[0].startswith("<?xml"):
-            lines = lines[1:]
-        clean_xml = "\n".join(lines).strip()
+        lines.append("\t</list>")
+        lines.append("</record>")
 
+        clean_xml = "\n".join(lines)
         with open(self.config_path, "w", encoding="utf-8") as f:
             f.write(clean_xml)
 
     def add_mapping(self, uid, filename):
         """
-        Loads mappings, adds or updates a mapping for a player UID, and saves it.
+        Loads mappings, adds/updates a mapping for a player UID, and saves it.
         """
         mappings = self.load_mappings()
         mappings[uid] = filename

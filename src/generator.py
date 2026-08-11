@@ -4,9 +4,10 @@ import urllib.parse
 import aiohttp
 
 class FaceGenerator:
-    def __init__(self, graphics_dir, concurrency_limit=1):
+    def __init__(self, graphics_dir, concurrency_limit=1, api_key=None):
         self.graphics_dir = graphics_dir
         self.semaphore = asyncio.Semaphore(concurrency_limit)
+        self.api_key = api_key
         os.makedirs(self.graphics_dir, exist_ok=True)
 
     async def download_face(self, session, uid, prompt):
@@ -18,7 +19,15 @@ class FaceGenerator:
         """
         import random
         encoded_prompt = urllib.parse.quote(prompt)
-        url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={uid}&nologo=true&private=true"
+        
+        # Build URL depending on whether the user provided a free API key from enter.pollinations.ai
+        if self.api_key:
+            # Authenticated requests can use the premium 'flux' model for photorealism
+            url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={uid}&model=flux&nologo=true&private=true&key={self.api_key}"
+        else:
+            # Keyless requests default to Sana
+            url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={uid}&nologo=true&private=true"
+
         filepath = os.path.join(self.graphics_dir, f"{uid}.png")
 
         # Limit concurrent downloads to avoid rate limits

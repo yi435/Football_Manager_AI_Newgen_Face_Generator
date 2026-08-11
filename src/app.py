@@ -193,7 +193,8 @@ class FMGeneratorApp:
                 self.ui.log(f"[Info] Preparing to generate {len(players_to_generate)} faces...")
                 self.ui.update_stats(len(existing_mappings), len(players_to_generate))
 
-                generator = FaceGenerator(graphics_dir, self.config["concurrency_limit"])
+                api_key = self.config.get("api_key", None)
+                generator = FaceGenerator(graphics_dir, self.config["concurrency_limit"], api_key)
                 
                 # Callback to update UI during download progress
                 def on_progress(count, total, result):
