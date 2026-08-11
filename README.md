@@ -4,6 +4,17 @@ A performance-friendly, cross-platform Desktop GUI tool designed to automaticall
 
 ---
 
+> [!IMPORTANT]
+> **CRITICAL: Football Manager Graphics Setup**
+> For the game to recognize and display the generated faces, you **MUST** configure these settings in your game preferences (otherwise, the game will ignore the new images and the `config.xml`):
+> 1. In Football Manager, go to **Preferences > Interface**.
+> 2. **Untick** the checkbox for *"Use caching to decrease page loading times"*.
+> 3. **Tick** the checkbox for *"Reload skin when confirming changes in Preferences"*.
+> 4. Click the **Clear Cache** button (essential: this forces the game to wipe its old graphics index and find our new `config.xml`).
+> 5. Click the **Reload Skin** button.
+> 
+> ---
+
 ## Key Features
 
 1. **Zero Local Overhead:** Uses **Pollinations.ai**'s remote servers to generate face portraits. Consumes **0% of your local GPU and RAM**, leaving all your system resources for running the game.
