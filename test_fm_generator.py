@@ -18,23 +18,27 @@ def main():
         config = json.load(f)
 
     api_key = config.get("api_key", "").strip()
+    face_style_template = config.get("face_style", "")
 
     print(f"[Config] API Key loaded: {api_key[:6]}...{api_key[-6:] if len(api_key) > 12 else ''}" if api_key else "[Config] No API Key found. Defaulting to keyless Sana model.")
 
     # 2. Setup mock player attributes
     mock_uid = "2002178350"
-    mock_prompt = (
-        "professional headshot photo of a male 17-year-old Japanese football player, "
-        "fair skin, dark brown hair, dark brown eyes, clean-shaven, tidy and well-presented, "
-        "confident professional look, friendly smile, athletic build, realistic face, "
-        "highly detailed skin texture, professional sports photography, neutral background"
-    )
+    mock_age = "17"
+    mock_nationality = "Japanese"
+    mock_personality_details = "fair skin, short dark brown hair, dark brown eyes, clean-shaven, tidy appearance, focused smiling expression"
 
-    print(f"[Player] Using seed UID: {mock_uid}")
-    print(f"[Prompt] Mock Prompt:\n  {mock_prompt}\n")
+    # Build prompt dynamically from config.json template
+    prompt = face_style_template
+    prompt = prompt.replace("[AGE]", mock_age)
+    prompt = prompt.replace("[NATIONALITY]", mock_nationality)
+    prompt = prompt.replace("[PERSONALITY]", mock_personality_details)
+
+    print(f"[Player] Seed UID: {mock_uid}")
+    print(f"[Prompt] Dynamic Prompt from config.json:\n  {prompt}\n")
 
     # 3. Build request URL
-    encoded_prompt = urllib.parse.quote(mock_prompt)
+    encoded_prompt = urllib.parse.quote(prompt)
     if api_key:
         url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={mock_uid}&model=flux&nologo=true&private=true&key={api_key}"
         print("[API] Model selected: FLUX (photorealistic)")
