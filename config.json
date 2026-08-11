@@ -1,8 +1,8 @@
 {
   "watch_directory": "./exports",
   "graphics_directory": "./graphics/AI Newgen Faces",
-  "face_style": "professional headshot photo of a male [AGE]-year-old [NATIONALITY] football player, [PERSONALITY], athletic build, realistic face, highly detailed skin texture, professional sports photography, neutral background",
+  "face_style": "candid smartphone camera snapshot photo of a [AGE]-year-old male [NATIONALITY] football player, [PERSONALITY], athletic training shirt, natural lighting, unpolished raw photo, visible skin texture, blurred background, real life photo",
   "concurrency_limit": 1,
   "auto_reload_skin_hotkey": false,
-  "api_key": "sk_L8aNM57bguJMN5bx782mOwGSr7m4kkHu"
+  "api_key": "sk_EKSe16BbU6cGPNVOcb7AshblXkBwQCs7"
 }
