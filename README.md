@@ -13,9 +13,31 @@ A performance-friendly, cross-platform Desktop GUI tool designed to automaticall
 
 ---
 
+## 🚀 One-Click Launcher (Windows)
+
+We have provided a unified script [run_all.bat](file:///home/zakariae/Documents/zed%20projet/run_all.bat) in the project directory that:
+1. Automatically starts your **ComfyUI Server** in a minimized background window.
+2. Waits 5 seconds for it to boot.
+3. Automatically launches the **FM AI Newgen Generator App**.
+
+> [!TIP]
+> Just double-click **`run_all.bat`** in your project folder to start everything instantly! *(If you ever move your ComfyUI installation, you can open `run_all.bat` in Notepad and update the folder path).*
+
+---
+
 ## ⚡ Quick Start — Local ComfyUI (Recommended, Free)
 
 This generates unlimited photorealistic faces, offline, on your own GPU. No API keys, no credits, no rate limits.
+
+> [!IMPORTANT]
+> **CRITICAL: ComfyUI Portable Folder Structure**
+> If you are using the **ComfyUI Windows Portable** package, your directories are nested:
+> 1. You have a parent folder (e.g., `C:\Users\zakar\ComfyUI\`) containing your startup scripts (`run_nvidia_gpu.bat`).
+> 2. Inside it, there is a nested folder also called `ComfyUI` (e.g., `C:\Users\zakar\ComfyUI\ComfyUI\`).
+> 3. Your checkpoints **MUST** be placed in the **inner nested folder**:
+>    `C:\Users\zakar\ComfyUI\ComfyUI\models\checkpoints\Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors`
+> 
+> *(If you place models in the outer `ComfyUI\models\checkpoints\` directory, ComfyUI will not see them, and your face generation will fail with an empty `[]` list error).*
 
 ### 1. Install ComfyUI (Windows, one time, ~2GB)
 
