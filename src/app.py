@@ -17,7 +17,16 @@ DEFAULT_CONFIG = {
     "graphics_directory": "./graphics/AI Newgen Faces",
     "face_style": "professional headshot photo of a male [AGE]-year-old [NATIONALITY] football player, [PERSONALITY], athletic build, realistic face, highly detailed skin texture, professional sports photography, neutral background",
     "concurrency_limit": 5,
-    "auto_reload_skin_hotkey": False
+    "auto_reload_skin_hotkey": False,
+    "provider": "comfyui",
+    "comfyui_base_url": "http://127.0.0.1:8188",
+    "comfyui_model": "",
+    "comfyui_negative_prompt": "deformed, blurry, out of focus, low quality, bad anatomy, watermark, text, logo, cartoon, illustration, 3d render, painting, extra fingers, mutated hands, extra limbs, ugly, distorted face, oversaturated",
+    "comfyui_steps": 25,
+    "comfyui_cfg": 6.0,
+    "comfyui_sampler": "euler_a",
+    "comfyui_scheduler": "karras",
+    "comfyui_size": 1024
 }
 
 class FMGeneratorApp:
@@ -32,14 +41,17 @@ class FMGeneratorApp:
             start_callback=self.start_watcher,
             stop_callback=self.stop_watcher,
             save_config_callback=self.save_config,
-            run_now_callback=self.run_now
+            run_now_callback=self.run_now,
+            check_provider_callback=self.check_provider
         )
         
         # Load configuration into UI
         self.ui.load_config(
             self.config["watch_directory"],
             self.config["graphics_directory"],
-            self.config["auto_reload_skin_hotkey"]
+            self.config["auto_reload_skin_hotkey"],
+            self.config.get("provider", "comfyui"),
+            self.config.get("comfyui_base_url", "http://127.0.0.1:8188")
         )
         
         self.watcher = None
@@ -59,15 +71,39 @@ class FMGeneratorApp:
                 print(f"Error reading config: {e}. Loading defaults.")
         return DEFAULT_CONFIG.copy()
 
-    def save_config(self, watch_dir, graphics_dir, auto_reload):
+    def save_config(self, watch_dir, graphics_dir, auto_reload, provider=None, comfyui_base_url=None):
         self.config["watch_directory"] = watch_dir
         self.config["graphics_directory"] = graphics_dir
         self.config["auto_reload_skin_hotkey"] = auto_reload
+        if provider:
+            self.config["provider"] = provider
+        if comfyui_base_url:
+            self.config["comfyui_base_url"] = comfyui_base_url
         try:
             with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump(self.config, f, indent=2)
         except Exception as e:
             self.ui.log(f"[Error] Failed to save config.json: {e}")
+
+    def check_provider(self):
+        """
+        Pings the selected provider from a background thread and logs the result.
+        """
+        try:
+            generator = FaceGenerator(
+                self.config.get("graphics_directory", "./graphics/AI Newgen Faces"),
+                concurrency_limit=1,
+                api_key=self.config.get("api_key", None),
+                provider=self.config.get("provider", "comfyui"),
+                comfyui_base_url=self.config.get("comfyui_base_url", "http://127.0.0.1:8188")
+            )
+            ok, msg = asyncio.run(generator.check_connection())
+            prefix = "[Success]" if ok else "[Error]"
+            self.ui.log(f"{prefix} {generator.provider_name} connection: {msg}")
+            return ok
+        except Exception as e:
+            self.ui.log(f"[Error] Provider check failed: {e}")
+            return False
 
     def start_watcher(self, watch_dir, graphics_dir):
         try:
@@ -194,8 +230,22 @@ class FMGeneratorApp:
                 self.ui.update_stats(len(existing_mappings), len(players_to_generate))
 
                 api_key = self.config.get("api_key", None)
-                generator = FaceGenerator(graphics_dir, self.config["concurrency_limit"], api_key)
-                
+                provider = self.config.get("provider", "comfyui")
+                generator = FaceGenerator(
+                    graphics_dir,
+                    self.config["concurrency_limit"],
+                    api_key,
+                    provider=provider,
+                    comfyui_base_url=self.config.get("comfyui_base_url", "http://127.0.0.1:8188"),
+                    comfyui_model=self.config.get("comfyui_model", ""),
+                    negative_prompt=self.config.get("comfyui_negative_prompt", ""),
+                    steps=self.config.get("comfyui_steps", 25),
+                    cfg=self.config.get("comfyui_cfg", 6.0),
+                    sampler=self.config.get("comfyui_sampler", "euler_a"),
+                    scheduler=self.config.get("comfyui_scheduler", "karras"),
+                    size=self.config.get("comfyui_size", 1024)
+                )
+
                 # Callback to update UI during download progress
                 def on_progress(count, total, result):
                     nonlocal failed_players
@@ -216,13 +266,39 @@ class FMGeneratorApp:
                             failed_players[uid] = p_detail
 
                 # Run asynchronous download in standard thread loop
-                asyncio.run(generator.generate_faces_async(
-                    players_to_generate, 
-                    self.config["face_style"], 
-                    on_progress
-                ))
+                async def _run_generation_checked():
+                    # Pre-flight: verify the provider is reachable before queuing
+                    # a whole batch of downloads (especially for local ComfyUI).
+                    ok, msg = await generator.check_connection()
+                    self.ui.log(f"[Provider] {generator.provider_name}: {msg}")
+                    if not ok:
+                        self.ui.log("[Error] Aborting batch - provider unreachable. "
+                                    "Fix the issue, then retry (failed queue saved below).")
+                        return False
+                    await generator.generate_faces_async(
+                        players_to_generate,
+                        self.config["face_style"],
+                        on_progress
+                    )
+                    return True
+
+                generation_succeeded = asyncio.run(_run_generation_checked())
 
                 # 5. Save XML Maps, Metadata, and Failed Downloads Queue
+                if not generation_succeeded:
+                    # Provider was unreachable: queue all pending players for the
+                    # next retry and skip the success + skin reload steps.
+                    for p in players_to_generate:
+                        failed_players.setdefault(p["uid"], p)
+                    try:
+                        with open(failed_downloads_path, "w", encoding="utf-8") as f:
+                            json.dump(failed_players, f, indent=2)
+                    except Exception as e:
+                        self.ui.log(f"[Warning] Failed to save failed_downloads.json: {e}")
+                    self.ui.log(f"[Cache] Queued {len(failed_players)} players for retry when the provider is available.")
+                    self.ui.update_progress(0, 0, "Provider unavailable")
+                    return
+
                 xml_manager.save_mappings(existing_mappings)
                 with open(metadata_path, "w", encoding="utf-8") as f:
                     json.dump(player_milestones, f, indent=2)
@@ -298,7 +374,15 @@ class FMGeneratorApp:
         """
         Translates raw network exceptions or HTTP codes into clean user-facing explanations.
         """
-        if "429" in error_str:
+        if "ComfyUI is not running" in error_str:
+            return "ComfyUI not running (Start ComfyUI, then run 'Check Provider Connection' to verify)"
+        elif "ComfyUI rejected request" in error_str or "did not return a prompt_id" in error_str:
+            return f"{error_str} (The ComfyUI workflow may be invalid or needs the FLUX/GTA nodes)"
+        elif "ComfyUI error" in error_str:
+            return f"{error_str} (The checkpoint may be missing. Add a checkpoint to ComfyUI/models/checkpoints/)"
+        elif "ComfyUI generation timed out" in error_str:
+            return "ComfyUI generation timed out (The checkpoint is taking too long. Try lowering steps or using a smaller model)"
+        elif "429" in error_str:
             return "HTTP 429 (Rate Limited: Pollinations.ai is busy. Staggered queue will auto-retry)"
         elif "400" in error_str:
             return "HTTP 400 (Bad Request: The prompt formatting is invalid)"

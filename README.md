@@ -2,30 +2,87 @@
 
 A performance-friendly, cross-platform Desktop GUI tool designed to automatically generate high-quality, photorealistic AI portraits for your generated youth players (newgens/regens) in **Football Manager 2024**.
 
+**Two face providers are supported:**
+
+| Provider | Cost | Quality | Requirements |
+|----------|------|---------|--------------|
+| **Local ComfyUI (SDXL)** ⭐ *Recommended* | Free, unlimited, offline | Excellent & fully offline | ComfyUI + a realism checkpoint (~7GB), 6-8GB VRAM GPU |
+| Pollinations.ai (cloud) | Free-ish (legacy endpoint) / cheap Pollen | Mediocre (768px default Sana) | Internet connection only |
+
+> Choose the provider in the app UI (face provider dropdown) or in `config.json` (`"provider": "comfyui"` or `"pollinations"`). A "Test Connection" button verifies your local ComfyUI server is reachable.
+
 ---
 
-> [!IMPORTANT]
-> **CRITICAL: Football Manager Graphics Setup**
-> For the game to recognize and display the generated faces, you **MUST** configure these settings in your game preferences (otherwise, the game will ignore the new images and the `config.xml`):
-> 1. In Football Manager, go to **Preferences > Interface**.
-> 2. **Untick** the checkbox for *"Use caching to decrease page loading times"*.
-> 3. **Tick** the checkbox for *"Reload skin when confirming changes in Preferences"*.
-> 4. Click the **Clear Cache** button (essential: this forces the game to wipe its old graphics index and find our new `config.xml`).
-> 5. Click the **Reload Skin** button.
-> 
-> ---
+## ⚡ Quick Start — Local ComfyUI (Recommended, Free)
+
+This generates unlimited photorealistic faces, offline, on your own GPU. No API keys, no credits, no rate limits.
+
+### 1. Install ComfyUI (Windows, one time, ~2GB)
+
+1. Install **Python 3.10+** and **Git** if you don't have them.
+2. Open Command Prompt or PowerShell and follow the [official ComfyUI install guide](https://docs.comfy.org/):
+   ```cmd
+   git clone https://github.com/comfyanonymous/ComfyUI.git
+   cd ComfyUI
+   python -m venv venv
+   venv\Scripts\activate.bat
+   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+   pip install -r requirements.txt
+   ```
+
+### 2. Download a realistic face checkpoint (~7GB, one time)
+
+Place the model file in `ComfyUI\models\checkpoints\`. Recommended SDXL realism models for faces:
+
+- **Juggernaut XL (v9)** — `https://huggingface.co/RunDiffusion/Juggernaut-XL-v9` (best overall photo realism)
+- **RealVisXL V4 / V5** — `https://huggingface.co/SG161222/RealVisXL_V4.0`
+- Or **DreamShaper XL** — `https://huggingface.co/Lykon/dreamshaper-xl-v2-turbo`
+
+The app auto-detects installed checkpoints. If you have several, set your favourite in `config.json`:
+```json
+"comfyui_model": "Juggernaut-XL-v9.safetensors"
+```
+
+### 3. Start ComfyUI
+
+```cmd
+venv\Scripts\activate.bat
+python main.py
+```
+
+You should see `Starting server... To see the GUI go to: http://127.0.0.1:8188`. **Keep this window open** while generating faces. (The GUI tab is optional; the app only needs the API — no need to build a workflow yourself.)
+
+### 4. Run this app
+
+```cmd
+python -m src.app
+```
+
+Select the **Local ComfyUI (SDXL)** provider, click **Test Connection** (should turn green), then press **Process Existing Files** or **Start Watcher**.
+
+> **Optional tuning** in `config.json`: `comfyui_steps` (25 default), `comfyui_cfg` (6.0), `comfyui_sampler` (`euler_a`), `comfyui_scheduler` (`karras`), `comfyui_size` (1024). Fewer steps (e.g. 12-15 with DreamShaper Turbo) = faster but slightly lower quality.
+
+---
+
+## ☁️ Alternative: Pollinations.ai (Cloud, Legacy)
+
+Uses Pollinations' remote servers — **0% local GPU usage**. Quality is limited on the free keyless tier (the default "Sana" model produces soft 768px images).
+
+> ⚠️ **Note (2026):** Pollinations moved to a Pollen credit (`gen.pollinations.ai`) system. The legacy `image.pollinations.ai` endpoint used here ignores API keys and `model=flux`, so you'll get the free default model. For good results, prefer Local ComfyUI.
+
+Select the **Pollinations.ai (cloud)** provider in the UI.
+
+---
 
 ## Key Features
 
-1. **Zero Local Overhead:** Uses **Pollinations.ai**'s remote servers to generate face portraits. Consumes **0% of your local GPU and RAM**, leaving all your system resources for running the game.
-2. **Milestone-Based Player Aging:** To simulate players growing older, the generator uses their Unique ID as a random seed. This ensures that their underlying facial structure remains consistent, but their visual attributes (like hair length, stubble, and mature features) update when they cross key milestones: **16, 20, 24, and 28 years old**.
-3. **Visual Personality Mapping:** Player personalities (from the exported list) are mapped directly into the AI prompt:
-   - *Model Citizen / Professional:* Well-groomed hair, clean-shaven, polite smile, neat appearance.
-   - *Temperamental / Confrontational:* Stern serious look, messy delinquent haircut, minor cosmetic scar.
-   - *Jovial / Spirited:* Warm, happy smiling expression with friendly laughing eyes.
-4. **Weighted Demographics for Multi-Ethnic Countries:** Multi-ethnic countries (such as France, England, Brazil, USA, Belgium) use demographic weight profiles (e.g., France has 70% European, 20% African, 10% North African probability) to ensure the generated newgen intake matches real-life ratios.
-5. **Real-Player Preservation:** Creates a separate graphics directory mapping entries to its own `config.xml`. Your existing real-player facepacks (like DF11 or Cutouts) remain completely safe and untouched.
-6. **Auto Reload Skin:** On Windows, the application automatically triggers the game's skin reload hotkey (`Shift + R`) once new faces are ready.
+1. **Zero Local Overhead (Cloud mode):** Remote Pollinations servers consume 0% of your local GPU/RAM.
+2. **Unlimited Offline Generation (ComfyUI mode):** Local SDXL on your GPU — free forever, no quotas.
+3. **Milestone-Based Player Aging:** Unique ID seeds the generator so facial structure stays consistent, while hair length, stubble, and mature features update at age milestones **16, 20, 24, 28**.
+4. **Visual Personality Mapping:** Player personalities map into the AI prompt (Model Citizen ≈ clean-shaven & neat; Temperamental ≈ stern with possible scar; Jovial ≈ warm smile, etc.).
+5. **Weighted Demographics:** Multi-ethnic countries (France, England, Brazil, USA…) use demographic weight profiles to reflect real-life ratios.
+6. **Real-Player Preservation:** Faces write to their own graphics directory and `config.xml`, leaving your real-player facepacks untouched.
+7. **Auto Reload Skin:** On Windows, optionally triggers FM's skin reload hotkey (`Shift + R`) automatically.
 
 ---
 
@@ -33,19 +90,17 @@ A performance-friendly, cross-platform Desktop GUI tool designed to automaticall
 
 ```
 zed projet/
-├── config.json            # Tool settings (graphics/watch paths, prompt styles)
-├── requirements.txt       # Python dependencies (watchdog, striprtf, aiohttp)
+├── config.json            # Tool settings (paths, prompts, provider + ComfyUI tuning)
+├── requirements.txt       # Python dependencies (watchdog, striprtf, aiohttp, pillow)
 ├── README.md              # This guide
-├── commit.sh              # Double-click script to commit changes to GitHub (Linux)
-├── commit.bat             # Double-click script to commit changes to GitHub (Windows)
-├── verify_tool.py         # Mock verification test suite
+├── commit.sh / commit.bat # One-click GitHub commit helpers
+├── verify_tool.py         # End-to-end mock verification (uses configured provider)
 └── src/
-    ├── __init__.py
-    ├── app.py             # App orchestrator and hotkey triggers
-    ├── ui.py              # Dark-themed Tkinter GUI interface
+    ├── app.py             # App orchestrator + hotkey triggers + provider check
+    ├── ui.py              # Dark-themed Tkinter GUI (provider selector included)
     ├── watcher.py         # Background directory watcher
     ├── parser.py          # RTF/HTML player parser & demographic builder
-    ├── generator.py       # Asynchronous face image generator (Pollinations.ai)
+    ├── generator.py       # Asynchronous face generator (ComfyUI + Pollinations backends)
     └── xml_manager.py     # config.xml reader/writer
 ```
 
@@ -54,67 +109,57 @@ zed projet/
 ## Installation & Running
 
 ### Prerequisites
-You need **Python 3.10+** installed on your system.
+- **Python 3.10+**
+- For local quality: **ComfyUI** installed & running (see Quick Start) and a GPU with 6-8GB VRAM.
 
 ### 1. On Windows (Where you play the game)
-1. Open Command Prompt or PowerShell in this project folder.
-2. Install the requirements:
-   ```cmd
-   pip install -r requirements.txt
-   ```
-3. Run the application:
-   ```cmd
-   python -m src.app
-   ```
-4. (Optional) Run the commit helper to save changes to your GitHub:
-   ```cmd
-   commit.bat
-   ```
+```cmd
+pip install -r requirements.txt
+python -m src.app
+```
 
 ### 2. On Linux (Fedora - Development)
-1. Open your terminal in this folder.
-2. Install requirements:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Run the application:
-   ```bash
-   python3 -m src.app
-   ```
-4. (Optional) Run the commit helper:
-   ```bash
-   ./commit.sh
-   ```
+```bash
+pip install -r requirements.txt
+python3 -m src.app
+```
 
 ---
 
 ## Setting Up Football Manager 2024
 
-Since FM24 does not provide a developer API, we use a simple background file watcher. To use it, follow these steps:
+> [!IMPORTANT]
+> **CRITICAL: Football Manager Graphics Setup**
+> For FM to recognize the generated faces, configure these game preferences:
+> 1. **Preferences > Interface >** untick *"Use caching to decrease page loading times"*.
+> 2. Tick *"Reload skin when confirming changes in Preferences"*.
+> 3. Click **Clear Cache**, then **Reload Skin**.
 
 ### A. View & Filter Configuration
-1. Obtain the custom view file (`SCRIPT FACES player search.fmf`) and filter file (`is newgen search filter.fmf`). You can use the standard files provided by the community (like NewGAN Manager).
-2. Place the view file in your FM directory:
+1. Obtain the custom view file (`SCRIPT FACES player search.fmf`) and filter file (`is newgen search filter.fmf`) — standard community files (e.g. from NewGAN Manager).
+2. Place the view file in:
    - Windows: `Documents\Sports Interactive\Football Manager 2024\views\`
    - Linux: `~/.steam/steam/steamapps/compatdata/2252600/pfx/drive_c/users/steamuser/Documents/Sports Interactive/Football Manager 2024/views/`
-3. Place the filter file in the `filters/` folder inside the same Football Manager directory.
+3. Place the filter in the `filters/` folder in the same FM directory.
 
 ### B. Daily Gameplay Workflow
-1. In the app UI, select your **Watch Directory** (e.g., a folder named `exports` in this project folder) and your **Graphics Directory** (e.g., `Documents\Sports Interactive\Football Manager 2024\graphics\AI Newgen Faces`).
+1. In the app UI, set your **Watch Directory** (e.g. a folder named `exports`) and **Graphics Directory** (e.g. `Documents\Sports Interactive\Football Manager 2024\graphics\AI Newgen Faces`).
 2. Click **Start Watcher**.
-3. In Football Manager:
-   - Go to **Scouting** > **Player Search**.
-   - Load the Custom View: Click the dropdown (Overview) > **Custom** > **Import View** > select `SCRIPT FACES player search`.
-   - Load the Filter: Click the cog icon (bottom left) > **Manage Filters** > **Import** > select `is newgen search filter`. Apply it.
-   - Select all players in the list (`Ctrl + A`).
-   - Press **`Ctrl + P`** (Print), select **To text file** or **To web page**, and save the file inside your configured watch directory.
-4. **The App takes over:** The script detects the new file, parses the UIDs, generates faces dynamically for any new players or aged players, updates `config.xml`, and triggers a skin reload in Football Manager automatically!
-5. In game, you can press **`Shift + R`** manually to reload the skin if auto-reload is turned off in settings.
+3. In Football Manager: **Scouting > Player Search** → load the custom view & filter.
+4. Select all players (`Ctrl + A`), press **`Ctrl + P`** → **To text file or web page**, save into your watch directory.
+5. **The app takes over:** parses UIDs, generates faces for new/aged players (via your chosen provider), updates `config.xml`, and reloads the skin.
+6. Press **`Shift + R`** manually in FM if auto-reload is off.
 
 ---
 
 ## Troubleshooting
 
-- **No faces generated:** Ensure the search view contains the **Unique ID (UID)** column. The parser filters out any rows that do not have a UID starting with `2`.
-- **Faces look completely different as they age:** The generation seed is bound to the player's numeric UID. Make sure you do not change the prompt seed settings in `generator.py`.
-- **Skin does not reload:** In FM preferences, go to **Preferences > Interface** and tick **"Reload skin when confirming changes in Preferences"** and uncheck **"Use caching to decrease page loading times"**.
+### ComfyUI
+- **"ComfyUI server NOT reachable"** → ComfyUI isn't running, or the URL in the UI/config differs from the server's port. Keep the ComfyUI terminal open while generating.
+- **"Checkpoint may be missing"** → no checkpoint found. Download a model into `ComfyUI\models\checkpoints\`, or set `comfyui_model` in `config.json`.
+- **Slow generation** → lower `comfyui_steps` (e.g. 15) or use DreamShaper Turbo. The RTX 2060 SUPER (8GB) generates SDXL faces in ~5-15s each.
+- **Faces look different when aging** → the seed is bound to the UID. Do NOT touch the seed logic in `generator.py`, and keep the same checkpoint + settings.
+
+### General
+- **No faces generated:** Ensure the search view contains the **Unique ID (UID)** column. Players without a UID starting with `2` are skipped.
+- **Skin doesn't reload:** In FM Preferences untick caching and tick "Reload skin when confirming changes" (see Critical setup above).

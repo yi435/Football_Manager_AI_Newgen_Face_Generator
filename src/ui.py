@@ -7,12 +7,13 @@ from tkinter import filedialog, ttk, messagebox
 from tkinter.scrolledtext import ScrolledText
 
 class FMGeneratorUI:
-    def __init__(self, root, start_callback, stop_callback, save_config_callback, run_now_callback):
+    def __init__(self, root, start_callback, stop_callback, save_config_callback, run_now_callback, check_provider_callback=None):
         self.root = root
         self.start_callback = start_callback
         self.stop_callback = stop_callback
         self.save_config_callback = save_config_callback
         self.run_now_callback = run_now_callback
+        self.check_provider_callback = check_provider_callback
         
         # Window settings
         self.root.title("FM AI Newgen Generator")
@@ -51,6 +52,21 @@ class FMGeneratorUI:
                         gripcount=0, 
                         background=self.bg_panel, 
                         troughcolor=self.bg_dark)
+        
+        # Combobox style (dark theme)
+        style.configure("Custom.TCombobox",
+                        fieldbackground=self.bg_input,
+                        background=self.bg_input,
+                        foreground=self.fg_light,
+                        arrowcolor=self.fg_light,
+                        bordercolor=self.bg_input,
+                        lightcolor=self.bg_input,
+                        darkcolor=self.bg_input)
+        style.map("Custom.TCombobox",
+                  fieldbackground=[("readonly", self.bg_input)],
+                  foreground=[("readonly", self.fg_light)],
+                  selectbackground=[("readonly", self.color_accent)],
+                  selectforeground=[("readonly", self.fg_light)])
 
     def _create_widgets(self):
         # Header Label
@@ -116,6 +132,47 @@ class FMGeneratorUI:
                                          activebackground=self.bg_panel, activeforeground=self.fg_light, 
                                          font=("Segoe UI", 9), command=self._save_settings)
         auto_reload_chk.pack(side="left", padx=(0, 20))
+
+        # Provider selection row
+        provider_row = tk.Frame(path_frame, bg=self.bg_panel)
+        provider_row.grid(row=3, column=0, columnspan=3, sticky="w", pady=(5, 0))
+
+        tk.Label(provider_row, text="Face Provider:", font=("Segoe UI", 9, "bold"),
+                 fg=self.fg_light, bg=self.bg_panel).pack(side="left")
+
+        self.provider_labels = {
+            "comfyui": "Local ComfyUI (SDXL)",
+            "pollinations": "Pollinations.ai (cloud)"
+        }
+        self.provider_rev = {v: k for k, v in self.provider_labels.items()}
+        self.provider_var = tk.StringVar(value=self.provider_labels["comfyui"])
+        provider_cb = ttk.Combobox(provider_row, textvariable=self.provider_var,
+                                   values=list(self.provider_labels.values()),
+                                   state="readonly", width=24, font=("Segoe UI", 9),
+                                   style="Custom.TCombobox")
+        provider_cb.pack(side="left", padx=(8, 15))
+        provider_cb.bind("<<ComboboxSelected>>", lambda e: self._on_provider_change())
+
+        self.check_btn = tk.Button(provider_row, text="Test Connection", font=("Segoe UI", 9, "bold"),
+                                   bg=self.color_active, fg=self.bg_dark, activebackground="#00b8b8",
+                                   activeforeground=self.bg_dark, bd=0, padx=12, pady=2,
+                                   command=self._check_provider)
+        self.check_btn.pack(side="left", padx=(0, 15))
+
+        self.comfy_url_lbl = tk.Label(provider_row, text="ComfyUI URL:", font=("Segoe UI", 9, "bold"),
+                                      fg=self.fg_light, bg=self.bg_panel)
+        self.comfy_url_lbl.pack(side="left")
+        self.comfy_url_var = tk.StringVar(value="http://127.0.0.1:8188")
+        self.comfy_url_entry = tk.Entry(provider_row, textvariable=self.comfy_url_var, width=24,
+                                        font=("Segoe UI", 9), bg=self.bg_input, fg=self.fg_light,
+                                        insertbackground=self.fg_light, bd=0, highlightthickness=1,
+                                        highlightbackground=self.bg_input, highlightcolor=self.color_accent)
+        self.comfy_url_entry.pack(side="left", padx=(6, 0))
+        self.comfy_url_entry.bind("<KeyRelease>", lambda e: self._save_settings())
+
+        self.provider_status_lbl = tk.Label(provider_row, text="", font=("Segoe UI", 8),
+                                            fg=self.fg_muted, bg=self.bg_panel)
+        self.provider_status_lbl.pack(side="left", padx=(10, 0))
 
         # Status and Controls Row
         control_status_frame = tk.Frame(main_container, bg=self.bg_dark)
@@ -190,8 +247,42 @@ class FMGeneratorUI:
         self.save_config_callback(
             self.watch_path_var.get(),
             self.graphics_path_var.get(),
-            self.auto_reload_var.get()
+            self.auto_reload_var.get(),
+            self.get_provider(),
+            self.comfy_url_var.get().strip()
         )
+
+    def get_provider(self):
+        """Returns the config provider key matching the current dropdown selection."""
+        return self.provider_rev.get(self.provider_var.get(), "comfyui")
+
+    def _on_provider_change(self):
+        # Enable/disable the ComfyUI URL field depending on the selected provider
+        is_comfy = self.get_provider() == "comfyui"
+        state = "normal" if is_comfy else "disabled"
+        self.comfy_url_entry.configure(state=state)
+        self.provider_status_lbl.configure(text="")
+        self._save_settings()
+
+    def _check_provider(self):
+        if not self.check_provider_callback:
+            self.log("[Info] No provider check available.")
+            return
+        self.check_btn.configure(state="disabled")
+        self.provider_status_lbl.configure(text="Checking...")
+        threading.Thread(target=self._execute_check_provider, daemon=True).start()
+
+    def _execute_check_provider(self):
+        try:
+            ok = self.check_provider_callback()
+            label = "Connected" if ok else "FAILED - see log for details"
+            color = self.color_success if ok else self.color_error
+            self.root.after(0, lambda: self.provider_status_lbl.configure(text=label, fg=color))
+        except Exception as e:
+            self.root.after(0, lambda: self.provider_status_lbl.configure(text="Error during check", fg=self.color_error))
+            self.log(f"[Error] Provider check failed: {e}")
+        finally:
+            self.root.after(0, lambda: self.check_btn.configure(state="normal"))
 
     def _toggle_watcher(self):
         if self.watcher_running:
@@ -267,8 +358,13 @@ class FMGeneratorUI:
             self.progress_lbl.configure(text=text if text else "Ready")
 
     # Load config file settings into UI variables
-    def load_config(self, watch_dir, graphics_dir, auto_reload):
+    def load_config(self, watch_dir, graphics_dir, auto_reload, provider="comfyui", comfyui_base_url="http://127.0.0.1:8188"):
         self.watch_path_var.set(watch_dir)
         self.graphics_path_var.set(graphics_dir)
         self.auto_reload_var.set(auto_reload)
+        if provider in self.provider_labels:
+            self.provider_var.set(self.provider_labels[provider])
+        self.comfy_url_var.set(comfyui_base_url)
+        is_comfy = (provider in (None, "", "comfyui"))
+        self.comfy_url_entry.configure(state="normal" if is_comfy else "disabled")
         self.log("[Info] Settings loaded successfully.")

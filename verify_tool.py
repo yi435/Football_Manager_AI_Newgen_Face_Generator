@@ -54,8 +54,15 @@ async def run_verification():
         prompts[p["uid"]] = prompt
         print(f"  - Prompt for UID {p['uid']} ({p['name']}):\n    '{prompt}'\n")
 
-    # 4. Test API Download Connection
-    print("--- Testing Image Generation API (Pollinations.ai) ---")
+    # 4. Test Image Generation (via the configured provider from config.json)
+    config = {}
+    config_path = "config.json"
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+
+    provider = config.get("provider", "comfyui")
+    print(f"--- Testing Image Generation ({provider}) ---")
     # We will test download for the first player (Japanese Model Citizen, UID: 2001000001)
     test_player = players[0]
     test_prompt = prompts[test_player["uid"]]
@@ -63,17 +70,37 @@ async def run_verification():
     graphics_dir = os.path.join("graphics", "AI Newgen Faces")
     os.makedirs(graphics_dir, exist_ok=True)
     
-    generator = FaceGenerator(graphics_dir, concurrency_limit=1)
+    generator = FaceGenerator(
+        graphics_dir,
+        concurrency_limit=1,
+        api_key=config.get("api_key"),
+        provider=provider,
+        comfyui_base_url=config.get("comfyui_base_url", "http://127.0.0.1:8188"),
+        comfyui_model=config.get("comfyui_model", ""),
+        negative_prompt=config.get("comfyui_negative_prompt", ""),
+        steps=config.get("comfyui_steps", 25),
+        cfg=config.get("comfyui_cfg", 6.0),
+        sampler=config.get("comfyui_sampler", "euler_a"),
+        scheduler=config.get("comfyui_scheduler", "karras"),
+        size=config.get("comfyui_size", 1024)
+    )
+    
+    # Pre-flight connection check
+    ok, msg = await generator.check_connection()
+    print(f"[Info] Provider connection: {msg}")
+    if not ok:
+        print(f"[Error] Provider unreachable. Aborting download test.")
+        return
     
     import aiohttp
     async with aiohttp.ClientSession() as session:
-        print(f"[Info] Attempting to download face for {test_player['name']} (UID: {test_player['uid']})...")
+        print(f"[Info] Attempting to generate face for {test_player['name']} (UID: {test_player['uid']})...")
         res = await generator.download_face(session, test_player["uid"], test_prompt)
         
         if res["status"] == "success":
-            print(f"[Success] Image downloaded and saved to: {res['file']}")
+            print(f"[Success] Image generated and saved to: {res['file']}")
         else:
-            print(f"[Error] Image download failed: {res['error']}")
+            print(f"[Error] Image generation failed: {res['error']}")
             return
 
     # 5. Test XML Manager & Metadata
