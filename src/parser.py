@@ -407,6 +407,14 @@ class PromptBuilder:
         prompt = prompt_template
         prompt = prompt.replace("[AGE]", str(age))
         prompt = prompt.replace("[NATIONALITY]", nat_name)
-        prompt = prompt.replace("[PERSONALITY]", player_desc)
+
+        # Adjust terms for young players (under 20) to prevent the AI from generating mature adult looks
+        if age_int < 20:
+            prompt = prompt.replace("male", "teenage male")
+            prompt = prompt.replace("football player", "youth academy soccer player")
+            youthful_desc = f"{player_desc}, soft youthful facial features, smooth skin"
+            prompt = prompt.replace("[PERSONALITY]", youthful_desc)
+        else:
+            prompt = prompt.replace("[PERSONALITY]", player_desc)
 
         return prompt
