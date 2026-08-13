@@ -69,6 +69,13 @@ class FMGeneratorApp:
                     return data
             except Exception as e:
                 print(f"Error reading config: {e}. Loading defaults.")
+        else:
+            # Create default config.json on first launch
+            try:
+                with open(self.config_path, "w", encoding="utf-8") as f:
+                    json.dump(DEFAULT_CONFIG, f, indent=2)
+            except Exception as e:
+                print(f"Error initializing config.json: {e}")
         return DEFAULT_CONFIG.copy()
 
     def save_config(self, watch_dir, graphics_dir, auto_reload, provider=None, comfyui_base_url=None):
