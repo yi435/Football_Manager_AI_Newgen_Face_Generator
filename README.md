@@ -32,12 +32,12 @@ This generates unlimited photorealistic faces, offline, on your own GPU. No API 
 > [!IMPORTANT]
 > **CRITICAL: ComfyUI Portable Folder Structure**
 > If you are using the **ComfyUI Windows Portable** package, your directories are nested:
-> 1. You have a parent folder (e.g., `C:\Users\zakar\ComfyUI\`) containing your startup scripts (`run_nvidia_gpu.bat`).
-> 2. Inside it, there is a nested folder also called `ComfyUI` (e.g., `C:\Users\zakar\ComfyUI\ComfyUI\`).
+> 1. You have a parent folder (e.g., `%USERPROFILE%\ComfyUI\`) containing your startup scripts (`run_nvidia_gpu.bat`).
+> 2. Inside it, there is a nested folder also called `ComfyUI` (e.g., `%USERPROFILE%\ComfyUI\ComfyUI\`).
 > 3. Your checkpoints **MUST** be placed in the **inner nested folder**:
->    `C:\Users\zakar\ComfyUI\ComfyUI\models\checkpoints\Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors`
+>    `%USERPROFILE%\ComfyUI\ComfyUI\models\checkpoints\Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors`
 > 
-> *(If you place models in the outer `ComfyUI\models\checkpoints\` directory, ComfyUI will not see them, and your face generation will fail with an empty `[]` list error).*
+> *(If you place models in the outer `%USERPROFILE%\ComfyUI\models\checkpoints\` directory, ComfyUI will not see them, and your face generation will fail with an empty `[]` list error).*
 
 ### 1. Install ComfyUI (Windows, one time, ~2GB)
 
@@ -111,8 +111,9 @@ Select the **Pollinations.ai (cloud)** provider in the UI.
 ## Folder Structure
 
 ```
-zed projet/
+fm-newgen-generator/
 ├── config.json            # Tool settings (paths, prompts, provider + ComfyUI tuning)
+├── config.example.json    # Example configuration template (copy to config.json)
 ├── requirements.txt       # Python dependencies (watchdog, striprtf, aiohttp, pillow)
 ├── README.md              # This guide
 ├── commit.sh / commit.bat # One-click GitHub commit helpers

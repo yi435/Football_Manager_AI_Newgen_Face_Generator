@@ -9,6 +9,7 @@ ENV/
 env/
 
 # Project-specific ignores
+config.json
 exports/*
 !exports/.gitkeep
 graphics/AI Newgen Faces/*

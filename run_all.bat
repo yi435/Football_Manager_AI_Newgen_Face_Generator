@@ -8,12 +8,12 @@ echo.
 
 :: 1. Launch ComfyUI in a new window
 echo Starting ComfyUI server in the background...
-if exist "C:\Users\zakar\ComfyUI\run_nvidia_gpu.bat" (
-    start "ComfyUI Server" /min cmd /c "C:\Users\zakar\ComfyUI\run_nvidia_gpu.bat"
+if exist "%USERPROFILE%\ComfyUI\run_nvidia_gpu.bat" (
+    start "ComfyUI Server" /min cmd /c "%USERPROFILE%\ComfyUI\run_nvidia_gpu.bat"
     echo [Success] ComfyUI launch triggered. Waiting 5 seconds for server boot...
     timeout /t 5 >nul
 ) else (
-    echo [WARNING] ComfyUI launcher not found at 'C:\Users\zakar\ComfyUI\run_nvidia_gpu.bat'.
+    echo [WARNING] ComfyUI launcher not found at '%USERPROFILE%\ComfyUI\run_nvidia_gpu.bat'.
     echo Please make sure ComfyUI is running manually.
     echo.
 )
