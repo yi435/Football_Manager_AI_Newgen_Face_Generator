@@ -73,7 +73,6 @@ async def run_verification():
     generator = FaceGenerator(
         graphics_dir,
         concurrency_limit=1,
-        api_key=config.get("api_key"),
         provider=provider,
         comfyui_base_url=config.get("comfyui_base_url", "http://127.0.0.1:8188"),
         comfyui_model=config.get("comfyui_model", ""),
@@ -82,7 +81,8 @@ async def run_verification():
         cfg=config.get("comfyui_cfg", 6.0),
         sampler=config.get("comfyui_sampler", "euler_a"),
         scheduler=config.get("comfyui_scheduler", "karras"),
-        size=config.get("comfyui_size", 1024)
+        width=config.get("comfyui_width", 896),
+        height=config.get("comfyui_height", 1152)
     )
     
     # Pre-flight connection check

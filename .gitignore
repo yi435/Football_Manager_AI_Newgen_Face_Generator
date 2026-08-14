@@ -17,6 +17,27 @@ graphics/AI Newgen Faces/*
 config_local.json
 mock_export.rtf
 
+# PyInstaller outputs (keep build/*.spec and the icon)
+build/*
+!build/FMNewgenGenerator.spec
+!build/icon.ico
+!build/make_icon.py
+dist/
+*.spec.bak
+
+# Generated test artifacts
+test_*_face.png
+test_*_face.jpg
+
+# Netlify CLI local state
+.netlify/
+
+# Site deploy output
+site/download/
+
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Local Netlify folder
+.netlify

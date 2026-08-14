@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FM AI Newgen Generator — Realistic AI Faces for Football Manager 2024</title>
+<meta name="description" content="Generate photorealistic, unlimited AI faces for your FM24 youth academy players — free, offline, on your own GPU.">
+<style>
+  :root {
+    --bg: #121214;
+    --panel: #1a1a1e;
+    --input: #26262b;
+    --light: #f1f1f5;
+    --muted: #a5a5b5;
+    --accent: #6c5ce7;
+    --success: #00b894;
+    --warning: #fdcb6e;
+    --active: #00cec9;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--light);
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+  header { padding: 28px 0 8px; border-bottom: 1px solid #2a2a30; }
+  header .logo { font-size: 20px; font-weight: 700; color: var(--accent); }
+  nav a { color: var(--muted); text-decoration: none; margin-left: 20px; font-size: 14px; }
+  nav a:hover { color: var(--light); }
+  .hero { text-align: center; padding: 72px 24px 56px; }
+  .hero h1 { font-size: 40px; font-weight: 800; margin-bottom: 14px; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { font-size: 17px; color: var(--muted); max-width: 640px; margin: 0 auto 34px; }
+  .btn {
+    display: inline-block; padding: 16px 34px; font-size: 17px; font-weight: 700;
+    border-radius: 8px; text-decoration: none; cursor: pointer;
+  }
+  .btn-primary { background: var(--accent); color: var(--light); }
+  .btn-primary:hover { background: #5848c2; }
+  .btn-ghost { background: var(--panel); color: var(--light); border: 1px solid #33333c; margin-left: 14px; }
+  .btn-ghost:hover { border-color: var(--accent); }
+  .sub { margin-top: 14px; font-size: 13px; color: var(--muted); }
+  .coming {
+    display: inline-block; padding: 16px 34px; font-size: 16px; font-weight: 700;
+    border-radius: 8px; background: var(--panel); color: var(--muted);
+    border: 1px dashed #33333c;
+  }
+  section { padding: 56px 0; border-top: 1px solid #1f1f24; }
+  h2 { font-size: 26px; margin-bottom: 24px; }
+  h2 span { color: var(--accent); }
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+  .card { background: var(--panel); border-radius: 10px; padding: 22px; border: 1px solid #26262b; }
+  .card h3 { font-size: 16px; margin-bottom: 8px; color: var(--active); }
+  .card p { font-size: 14px; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { text-align: left; padding: 12px 14px; font-size: 14px; border-bottom: 1px solid #26262b; }
+  th { color: var(--muted); font-weight: 600; }
+  td:first-child { font-weight: 600; }
+  .ok { color: var(--success); }
+  .warn { color: var(--warning); }
+  ol.steps { counter-reset: step; padding-left: 0; list-style: none; }
+  ol.steps li { counter-increment: step; padding: 12px 0 12px 44px; position: relative; font-size: 15px; color: var(--muted); border-bottom: 1px solid #1f1f24; }
+  ol.steps li::before { content: counter(step); position: absolute; left: 0; top: 12px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--light); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  footer { text-align: center; padding: 40px 0; color: var(--muted); font-size: 13px; border-top: 1px solid #1f1f24; }
+  footer a { color: var(--muted); }
+  .badge { display: inline-block; background: var(--panel); color: var(--muted); border: 1px solid #33333c; border-radius: 20px; padding: 4px 14px; font-size: 13px; margin: 0 4px 8px 0; }
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 30px; }
+    .btn-ghost { margin-left: 0; margin-top: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap" style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="logo">⚽ FM Newgen Generator</div>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#requirements">Requirements</a>
+      <a href="#install">Install</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <h1>Realistic AI Faces for <span>Football Manager 2024</span></h1>
+    <p>Automatically generate photorealistic portraits for every youth academy player in your save. Free, unlimited, and 100% offline — running on your own GPU.</p>
+    <div>
+      <a class="btn btn-primary" href="#download">Download for Windows</a>
+      <a class="btn btn-ghost" href="#install">Setup Guide</a>
+    </div>
+    <div class="sub">One-click installer · includes the AI engine and realism model · no cloud, no credits, no limits</div>
+    <div style="margin-top:22px;">
+      <span class="badge">Offline</span>
+      <span class="badge">Free forever</span>
+      <span class="badge">NVIDIA GPU</span>
+      <span class="badge">FM24 NewGens</span>
+    </div>
+  </div>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <h2>Why you'll love it <span>▾</span></h2>
+    <div class="features">
+      <div class="card">
+        <h3>Unlimited & free</h3>
+        <p>Faces are generated on your own GPU with local ComfyUI — no subscription, credits, or rate limits. Ever.</p>
+      </div>
+      <div class="card">
+        <h3>Consistent aging</h3>
+        <p>Each player keeps the same facial structure as they grow. Hair, stubble and features update at ages 16, 20, 24 & 28.</p>
+      </div>
+      <div class="card">
+        <h3>Realistic demographics</h3>
+        <p>Weighted ethnic diversity so a French academy looks French, a Brazilian one looks Brazilian.</p>
+      </div>
+      <div class="card">
+        <h3>Personality-driven</h3>
+        <p>A "Model Citizen" looks composed and clean-cut; a "Temperamental" one wears a stern face. Personality shapes the portrait.</p>
+      </div>
+      <div class="card">
+        <h3>Frame-friendly portraits</h3>
+        <p>Bust framing and a 7:9 portrait canvas keep faces from covering the kit numbers in the FM UI.</p>
+      </div>
+      <div class="card">
+        <h3>Keeps your real faces</h3>
+        <p>Generated faces live in their own folder &amp; config, so your real-player facepack stays untouched.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap">
+    <h2>Download <span>▾</span></h2>
+    <p style="color:var(--muted); margin-bottom:18px;">
+      The installer is a small EXE. On first run it downloads the AI engine (~2&nbsp;GB) and the realism model (~7&nbsp;GB) with a progress bar, then sets everything up automatically.
+    </p>
+    <div id="dl"></div>
+  </div>
+</section>
+
+<section id="requirements">
+  <div class="wrap">
+    <h2>Requirements <span>▾</span></h2>
+    <table>
+      <tr><th></th><th>Requirement</th></tr>
+      <tr><td>OS</td><td>Windows 10 / 11</td></tr>
+      <tr><td>GPU</td><td>NVIDIA GPU with 6–8&nbsp;GB VRAM <span class="ok">(recommended)</span> <span class="warn">CPU mode works but is slow</span></td></tr>
+      <tr><td>Disk space</td><td>~25&nbsp;GB free (for the engine + model)</td></tr>
+      <tr><td>Game</td><td>Football Manager 2024 (Windows)</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2>Install in 3 steps <span>▾</span></h2>
+    <ol class="steps">
+      <li><strong style="color:var(--light);">Download & run the installer.</strong> The wizard checks your system, downloads the AI engine and model, and links everything for you.</li>
+      <li><strong style="color:var(--light);">Point it at FM.</strong> Pick your FM 2024 folder — the app watches for exports and writes faces into the game's graphics folder.</li>
+      <li><strong style="color:var(--light);">Reload the skin.</strong> In FM: <em>Preferences → Interface</em>, untick <em>"Use caching to decrease page loading times"</em>, then <em>Clear Cache → Reload Skin</em>.</li>
+    </ol>
+    <p style="color:var(--muted); font-size:14px; margin-top:14px;">
+      In-game: open <em>Player Search</em> with the NewGen view/filter, select all (Ctrl+A), and press <em>Ctrl+P → To text file</em>. The app generates every new face automatically.
+    </p>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <h2>FAQ <span>▾</span></h2>
+    <div class="card" style="margin-bottom:14px;">
+      <h3>Why is the download ~9&nbsp;GB on first run?</h3>
+      <p>The small EXE installs a full offline AI engine (ComfyUI) plus the photorealistic RealVisXL model on your machine. It's a one-time download — after that everything is offline and free.</p>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <h3>Can I generate while playing FM?</h3>
+      <p>Yes. FM is mostly CPU-bound, and generation happens on your GPU. Each face takes ~5–15 seconds on an 8&nbsp;GB card.</p>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <h3>Do I need a GPU or cloud API key?</h3>
+      <p>No cloud keys. You just need an NVIDIA GPU with at least 6–8&nbsp;GB VRAM — generation runs 100% locally and offline.</p>
+    </div>
+    <div class="card">
+      <h3>Does it touch my real-player facepack?</h3>
+      <p>No. NewGen faces are written to a separate graphics folder with their own config.xml, so existing facepacks are left untouched.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    FM AI Newgen Generator · a free fan tool for Football Manager 2024
+    <br>Not affiliated with Sports Interactive. The bundled RealVisXL model is distributed under the <a href="#faq">CreativeML Open RAIL++-M</a> license.
+  </div>
+</footer>
+
+<script>
+  // The EXE is uploaded to the site by deploy.bat (site/download/).
+  // If it's not there yet we show a friendly "coming soon" state instead of a
+  // broken link — no code change needed once the installer is published.
+  const HOSTED_FILE = "/download/FMNewgenGenerator.exe";
+  const GITHUB_LATEST = "https://github.com/yi435/fm/releases/latest/download/FMNewgenGenerator.exe";
+  const el = document.getElementById("dl");
+
+  function renderDownload(url, ready) {
+    if (!el) return;
+    if (ready) {
+      el.innerHTML =
+        '<a class="btn btn-primary" href="' + url + '">⬇ Download FMNewgenGenerator.exe</a>' +
+        '<div class="sub">Latest Windows build · ~50–150&nbsp;MB · one-click installer</div>';
+    } else {
+      el.innerHTML =
+        '<span class="coming">🚧 Installer coming soon — the first Windows build is being packaged</span>' +
+        '<div class="sub">One-click installer · no cloud, no credits, no limits</div>';
+    }
+  }
+
+  if (window.location.protocol.startsWith("http")) {
+    fetch(HOSTED_FILE, { method: "HEAD" })
+      .then(function (r) { renderDownload(HOSTED_FILE, r.ok); })
+      .catch(function () { renderDownload(HOSTED_FILE, false); });
+  } else {
+    renderDownload(GITHUB_LATEST, true);
+  }
+</script>
+
+</body>
+</html>

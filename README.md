@@ -2,14 +2,25 @@
 
 A performance-friendly, cross-platform Desktop GUI tool designed to automatically generate high-quality, photorealistic AI portraits for your generated youth players (newgens/regens) in **Football Manager 2024**.
 
-**Two face providers are supported:**
+> **For most Windows users:** grab the **FMNewgenGenerator.exe** installer from the [website](https://github.com/yi435/fm) / GitHub Releases. On first run it auto-downloads local ComfyUI (~2 GB) and the RealVisXL realism model (~7 GB) with a progress bar, then sets everything up for you — free, unlimited and offline.
+
+**Face generation is powered by your local GPU:**
 
 | Provider | Cost | Quality | Requirements |
 |----------|------|---------|--------------|
-| **Local ComfyUI (SDXL)** ⭐ *Recommended* | Free, unlimited, offline | Excellent & fully offline | ComfyUI + a realism checkpoint (~7GB), 6-8GB VRAM GPU |
-| Pollinations.ai (cloud) | Free-ish (legacy endpoint) / cheap Pollen | Mediocre (768px default Sana) | Internet connection only |
+| **Local ComfyUI (SDXL)** ⭐ | Free, unlimited, offline | Excellent & fully offline | ComfyUI + a realism checkpoint (~7GB), 6-8GB VRAM GPU |
 
-> Choose the provider in the app UI (face provider dropdown) or in `config.json` (`"provider": "comfyui"` or `"pollinations"`). A "Test Connection" button verifies your local ComfyUI server is reachable.
+> A "Test Connection" button verifies your local ComfyUI server is reachable.
+
+---
+
+## 📦 Installing from the EXE (Windows, recommended)
+
+1. Download `FMNewgenGenerator.exe` from the [releases page](https://github.com/yi435/fm/releases).
+2. Run it. A **Setup Wizard** opens: it checks your system, downloads the AI engine + model (resumable, with a progress bar), installs them under `%LOCALAPPDATA%\FM Newgen Generator\`, writes a ready-to-use `config.json` beside the EXE, then launches the app.
+3. In the app, point **Watch Directory** and **Graphics Directory** at your FM folders (see *Setting Up Football Manager 2024* below), then **Start Watcher**.
+
+> The EXE is a self-contained GUI. On later launches it skips the wizard and auto-starts the embedded ComfyUI server for you.
 
 ---
 
@@ -82,29 +93,19 @@ python -m src.app
 
 Select the **Local ComfyUI (SDXL)** provider, click **Test Connection** (should turn green), then press **Process Existing Files** or **Start Watcher**.
 
-> **Optional tuning** in `config.json`: `comfyui_steps` (25 default), `comfyui_cfg` (6.0), `comfyui_sampler` (`euler_a`), `comfyui_scheduler` (`karras`), `comfyui_size` (1024). Fewer steps (e.g. 12-15 with DreamShaper Turbo) = faster but slightly lower quality.
-
----
-
-## ☁️ Alternative: Pollinations.ai (Cloud, Legacy)
-
-Uses Pollinations' remote servers — **0% local GPU usage**. Quality is limited on the free keyless tier (the default "Sana" model produces soft 768px images).
-
-> ⚠️ **Note (2026):** Pollinations moved to a Pollen credit (`gen.pollinations.ai`) system. The legacy `image.pollinations.ai` endpoint used here ignores API keys and `model=flux`, so you'll get the free default model. For good results, prefer Local ComfyUI.
-
-Select the **Pollinations.ai (cloud)** provider in the UI.
+> **Tuning:** steps, CFG, sampler, scheduler, output size and concurrency are editable **in the app** under *Generation Settings* (they save to `config.json` automatically). Fewer steps (e.g. 12-15 with DreamShaper Turbo) = faster but slightly lower quality.
 
 ---
 
 ## Key Features
 
-1. **Zero Local Overhead (Cloud mode):** Remote Pollinations servers consume 0% of your local GPU/RAM.
-2. **Unlimited Offline Generation (ComfyUI mode):** Local SDXL on your GPU — free forever, no quotas.
-3. **Milestone-Based Player Aging:** Unique ID seeds the generator so facial structure stays consistent, while hair length, stubble, and mature features update at age milestones **16, 20, 24, 28**.
-4. **Visual Personality Mapping:** Player personalities map into the AI prompt (Model Citizen ≈ clean-shaven & neat; Temperamental ≈ stern with possible scar; Jovial ≈ warm smile, etc.).
-5. **Weighted Demographics:** Multi-ethnic countries (France, England, Brazil, USA…) use demographic weight profiles to reflect real-life ratios.
-6. **Real-Player Preservation:** Faces write to their own graphics directory and `config.xml`, leaving your real-player facepacks untouched.
-7. **Auto Reload Skin:** On Windows, optionally triggers FM's skin reload hotkey (`Shift + R`) automatically.
+1. **Unlimited Offline Generation:** Local SDXL on your GPU — free forever, no quotas, no API keys, no credits.
+2. **Milestone-Based Player Aging:** Unique ID seeds the generator so facial structure stays consistent, while hair length, stubble, and mature features update at age milestones **16, 20, 24, 28**.
+3. **Visual Personality Mapping:** Player personalities map into the AI prompt (Model Citizen ≈ clean-shaven & neat; Temperamental ≈ stern with possible scar; Jovial ≈ warm smile, etc.).
+4. **Weighted Demographics:** Multi-ethnic countries (France, England, Brazil, USA…) use demographic weight profiles to reflect real-life ratios.
+5. **Real-Player Preservation:** Faces write to their own graphics directory and `config.xml`, leaving your real-player facepacks untouched.
+6. **Auto Reload Skin:** On Windows, optionally triggers FM's skin reload hotkey (`Shift + R`) automatically.
+7. **Install Maintenance:** The **Maintenance** button re-checks the AI engine and re-downloads any missing/corrupt pieces ("Repair") or removes the whole install ("Uninstall") — also available via `main.py --repair` / `main.py --uninstall`.
 
 ---
 
@@ -112,18 +113,27 @@ Select the **Pollinations.ai (cloud)** provider in the UI.
 
 ```
 fm-newgen-generator/
+├── main.py                # Unified entry point (wizard-or-app; --repair / --uninstall)
 ├── config.json            # Tool settings (paths, prompts, provider + ComfyUI tuning)
 ├── config.example.json    # Example configuration template (copy to config.json)
-├── requirements.txt       # Python dependencies (watchdog, striprtf, aiohttp, pillow)
+├── requirements.txt       # Python dependencies (watchdog, striprtf, aiohttp, pillow, py7zr)
 ├── README.md              # This guide
 ├── commit.sh / commit.bat # One-click GitHub commit helpers
+├── build.bat              # Windows: build the EXE with PyInstaller
+├── deploy.bat             # Deploy the website to Netlify
+├── netlify.toml           # Netlify site config + /latest release redirect
+├── build/
+│   └── FMNewgenGenerator.spec  # PyInstaller build spec
+├── .github/workflows/     # CI: build the EXE on Windows on every release tag
+├── site/                  # Static landing + download page
 ├── verify_tool.py         # End-to-end mock verification (uses configured provider)
 └── src/
-    ├── app.py             # App orchestrator + hotkey triggers + provider check
+    ├── app.py             # App orchestrator + hotkey triggers + provider check + ComfyUI autostart + maintenance
     ├── ui.py              # Dark-themed Tkinter GUI (provider selector included)
+    ├── setup_wizard.py    # First-run installer (downloads ComfyUI + model, writes config)
     ├── watcher.py         # Background directory watcher
     ├── parser.py          # RTF/HTML player parser & demographic builder
-    ├── generator.py       # Asynchronous face generator (ComfyUI + Pollinations backends)
+    ├── generator.py       # Asynchronous face generator (ComfyUI backend)
     └── xml_manager.py     # config.xml reader/writer
 ```
 
@@ -146,6 +156,16 @@ python -m src.app
 pip install -r requirements.txt
 python3 -m src.app
 ```
+
+---
+
+## 🛠️ Building the EXE (developers)
+
+1. Install PyInstaller: `pip install pyinstaller`.
+2. Windows: run `build.bat` (or `python -m PyInstaller --clean build/FMNewgenGenerator.spec`). The EXE icon (`build/icon.ico`) is embedded automatically; regenerate it with `python build/make_icon.py` if you redesign it.
+3. Output: `dist/FMNewgenGenerator.exe`.
+4. CI: pushing a `v*` tag triggers `.github/workflows/build-exe.yml`, which builds the EXE on a Windows runner and attaches it to a GitHub Release.
+5. Website: `deploy.bat` copies the EXE into the site and deploys to Netlify (`netlify.toml`). The Download button then serves the EXE directly from the site — works even with the repo private. (`/latest` in `netlify.toml` covers the repo going public later.)
 
 ---
 

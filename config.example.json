@@ -12,6 +12,6 @@
   "comfyui_cfg": 6.0,
   "comfyui_sampler": "euler_a",
   "comfyui_scheduler": "karras",
-  "comfyui_size": 1024,
-  "api_key": ""
+  "comfyui_width": 896,
+  "comfyui_height": 1152
 }

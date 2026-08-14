@@ -26,13 +26,26 @@ DEFAULT_CONFIG = {
     "comfyui_cfg": 6.0,
     "comfyui_sampler": "euler_a",
     "comfyui_scheduler": "karras",
-    "comfyui_size": 1024
+    "comfyui_width": 896,
+    "comfyui_height": 1152
 }
+
+
+def app_root():
+    """
+    Returns the folder that owns app state (config.json).
+    - Frozen (PyInstaller): folder containing the .exe.
+    - Running from source: this project folder.
+    """
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 class FMGeneratorApp:
     def __init__(self, root):
         self.root = root
-        self.config_path = "config.json"
+        self.config_path = os.path.join(app_root(), "config.json")
         self.config = self._load_config()
         
         # Instantiate UI
@@ -42,7 +55,8 @@ class FMGeneratorApp:
             stop_callback=self.stop_watcher,
             save_config_callback=self.save_config,
             run_now_callback=self.run_now,
-            check_provider_callback=self.check_provider
+            check_provider_callback=self.check_provider,
+            maintenance_callback=self.open_maintenance
         )
         
         # Load configuration into UI
@@ -51,34 +65,85 @@ class FMGeneratorApp:
             self.config["graphics_directory"],
             self.config["auto_reload_skin_hotkey"],
             self.config.get("provider", "comfyui"),
-            self.config.get("comfyui_base_url", "http://127.0.0.1:8188")
+            self.config.get("comfyui_base_url", "http://127.0.0.1:8188"),
+            self.config.get("comfyui_steps", 25),
+            self.config.get("comfyui_cfg", 6.0),
+            self.config.get("comfyui_sampler", "euler_a"),
+            self.config.get("comfyui_scheduler", "karras"),
+            self.config.get("comfyui_width", 896),
+            self.config.get("comfyui_height", 1152),
+            self.config.get("concurrency_limit", 1)
         )
         
         self.watcher = None
         self.processing_lock = threading.Lock()
+        self.auto_start_comfyui()
+
+    def auto_start_comfyui(self):
+        """
+        When the setup wizard installed an embedded ComfyUI (config key
+        comfyui_install_dir), launch it silently on startup so the user never
+        has to start a server manually. Skips if the server is already up.
+        """
+        import subprocess
+        if not sys.platform.startswith("win"):
+            return
+        install_dir = self.config.get("comfyui_install_dir", "")
+        if not install_dir or not os.path.isdir(install_dir):
+            return
+        try:
+            import aiohttp
+            async def _ping():
+                base = self.config.get("comfyui_base_url", "http://127.0.0.1:8188")
+                async with aiohttp.ClientSession() as s:
+                    try:
+                        async with s.get(f"{base}/system_stats", timeout=3, ssl=False) as r:
+                            return r.status == 200
+                    except Exception:
+                        return False
+            if asyncio.run(_ping()):
+                return
+            launcher = os.path.join(install_dir, "run_nvidia_gpu.bat")
+            if not os.path.exists(launcher):
+                launcher = os.path.join(install_dir, "run_cpu.bat")
+            if os.path.exists(launcher):
+                subprocess.Popen(
+                    ["cmd", "/c", "start", "", "cmd", "/c", launcher],
+                    shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                print(f"[Info] Auto-started embedded ComfyUI from {launcher}")
+        except Exception as e:
+            print(f"[Warning] Could not auto-start ComfyUI: {e}")
 
     def _load_config(self):
+        data = None
         if os.path.exists(self.config_path):
             try:
                 with open(self.config_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    # Merge keys to ensure compatibility
-                    for k, v in DEFAULT_CONFIG.items():
-                        if k not in data:
-                            data[k] = v
-                    return data
             except Exception as e:
                 print(f"Error reading config: {e}. Loading defaults.")
-        else:
-            # Create default config.json on first launch
+        if data is None:
+            data = {}
+            # Create default config.json on first launch (next to the exe/app)
             try:
                 with open(self.config_path, "w", encoding="utf-8") as f:
                     json.dump(DEFAULT_CONFIG, f, indent=2)
             except Exception as e:
                 print(f"Error initializing config.json: {e}")
-        return DEFAULT_CONFIG.copy()
+        # Merge keys to ensure compatibility
+        for k, v in DEFAULT_CONFIG.items():
+            if k not in data:
+                data[k] = v
+        # Resolve relative directory paths against the app folder so a frozen
+        # EXE never depends on the working directory it was launched from.
+        for key in ("watch_directory", "graphics_directory"):
+            val = data.get(key, "")
+            if val and not os.path.isabs(val):
+                data[key] = os.path.normpath(os.path.join(app_root(), val))
+        return data
 
-    def save_config(self, watch_dir, graphics_dir, auto_reload, provider=None, comfyui_base_url=None):
+    def save_config(self, watch_dir, graphics_dir, auto_reload, provider=None,
+                    comfyui_base_url=None, tuning=None):
         self.config["watch_directory"] = watch_dir
         self.config["graphics_directory"] = graphics_dir
         self.config["auto_reload_skin_hotkey"] = auto_reload
@@ -86,6 +151,10 @@ class FMGeneratorApp:
             self.config["provider"] = provider
         if comfyui_base_url:
             self.config["comfyui_base_url"] = comfyui_base_url
+        if tuning:
+            for k, v in tuning.items():
+                if v is not None:
+                    self.config[k] = v
         try:
             with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump(self.config, f, indent=2)
@@ -100,7 +169,6 @@ class FMGeneratorApp:
             generator = FaceGenerator(
                 self.config.get("graphics_directory", "./graphics/AI Newgen Faces"),
                 concurrency_limit=1,
-                api_key=self.config.get("api_key", None),
                 provider=self.config.get("provider", "comfyui"),
                 comfyui_base_url=self.config.get("comfyui_base_url", "http://127.0.0.1:8188")
             )
@@ -111,6 +179,59 @@ class FMGeneratorApp:
         except Exception as e:
             self.ui.log(f"[Error] Provider check failed: {e}")
             return False
+
+    def open_maintenance(self):
+        """UI entry for repairing or uninstalling the embedded AI engine."""
+        from tkinter import messagebox
+        from src.setup_wizard import SetupWizard, is_installed
+
+        win = tk.Toplevel(self.root)
+        win.title("Installation Maintenance")
+        win.configure(bg="#1a1a1e")
+        win.resizable(0, 0)
+        tk.Label(win, text="AI Engine Installation", font=("Segoe UI", 11, "bold"),
+                 fg="#f1f1f5", bg="#1a1a1e").pack(anchor="w", padx=20, pady=(16, 4))
+        status = "Installed" if is_installed() else "Not installed / incomplete"
+        tk.Label(win, text=f"Status: {status}", font=("Segoe UI", 9),
+                 fg="#a5a5b5", bg="#1a1a1e").pack(anchor="w", padx=20, pady=(0, 12))
+
+        def do_repair():
+            win.destroy()
+            repair_win = tk.Toplevel(self.root)
+
+            def _done():
+                repair_win.destroy()
+                self.ui.log("[Info] Maintenance finished.")
+                self.auto_start_comfyui()
+
+            SetupWizard(repair_win, on_finish=_done, repair=True)
+
+        def do_uninstall():
+            win.destroy()
+            if not messagebox.askyesno(
+                    "Uninstall",
+                    "Remove the local AI engine + model (~9 GB)?\n"
+                    "Your FM folders and generated faces are NOT touched."):
+                return
+            self.ui.log("[Info] Uninstalling local AI engine…")
+            threading.Thread(target=self._run_uninstall, daemon=True).start()
+
+        for text, cmd, color in (("Repair Install", do_repair, "#6c5ce7"),
+                                 ("Uninstall", do_uninstall, "#d63031")):
+            tk.Button(win, text=text, bg=color, fg="#f1f1f5", bd=0, padx=16, pady=6,
+                      activebackground="#5848c2", command=cmd).pack(fill="x", padx=20, pady=4)
+        tk.Button(win, text="Close", bg="#26262b", fg="#f1f1f5", bd=0, padx=16, pady=6,
+                  command=win.destroy).pack(fill="x", padx=20, pady=(4, 16))
+
+    def _run_uninstall(self):
+        from src.setup_wizard import uninstall_all
+        try:
+            uninstall_all()
+        except Exception as e:
+            self.ui.log(f"[Error] Uninstall failed: {e}")
+            return
+        self.config.pop("comfyui_install_dir", None)
+        self.ui.log("[Success] Local AI engine removed. Restart the app to reinstall.")
 
     def start_watcher(self, watch_dir, graphics_dir):
         try:
@@ -236,12 +357,10 @@ class FMGeneratorApp:
                 self.ui.log(f"[Info] Preparing to generate {len(players_to_generate)} faces...")
                 self.ui.update_stats(len(existing_mappings), len(players_to_generate))
 
-                api_key = self.config.get("api_key", None)
                 provider = self.config.get("provider", "comfyui")
                 generator = FaceGenerator(
                     graphics_dir,
                     self.config["concurrency_limit"],
-                    api_key,
                     provider=provider,
                     comfyui_base_url=self.config.get("comfyui_base_url", "http://127.0.0.1:8188"),
                     comfyui_model=self.config.get("comfyui_model", ""),
@@ -250,7 +369,8 @@ class FMGeneratorApp:
                     cfg=self.config.get("comfyui_cfg", 6.0),
                     sampler=self.config.get("comfyui_sampler", "euler_a"),
                     scheduler=self.config.get("comfyui_scheduler", "karras"),
-                    size=self.config.get("comfyui_size", 1024)
+                    width=self.config.get("comfyui_width", 896),
+                    height=self.config.get("comfyui_height", 1152)
                 )
 
                 # Callback to update UI during download progress
@@ -390,11 +510,11 @@ class FMGeneratorApp:
         elif "ComfyUI generation timed out" in error_str:
             return "ComfyUI generation timed out (The checkpoint is taking too long. Try lowering steps or using a smaller model)"
         elif "429" in error_str:
-            return "HTTP 429 (Rate Limited: Pollinations.ai is busy. Staggered queue will auto-retry)"
+            return "HTTP 429 (Rate Limited: Too many requests. Staggered queue will auto-retry)"
         elif "400" in error_str:
             return "HTTP 400 (Bad Request: The prompt formatting is invalid)"
         elif any(code in error_str for code in ["500", "502", "503", "504"]):
-            return f"{error_str} (Server Error: Pollinations.ai is currently overloaded. Retrying...)"
+            return f"{error_str} (Server Error: The generation server is overloaded. Retrying...)"
         elif "ClientConnectorCertificateError" in error_str or "SSLCertVerificationError" in error_str:
             return "SSL Certificate verification failed (Your Windows root certificates are out of sync. Bypassing SSL...)"
         elif "ClientConnectorError" in error_str or "ServerDisconnectedError" in error_str:
