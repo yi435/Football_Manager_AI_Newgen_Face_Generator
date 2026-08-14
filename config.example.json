@@ -1,7 +1,7 @@
 {
   "watch_directory": "./exports",
   "graphics_directory": "./graphics/AI Newgen Faces",
-  "face_style": "candid smartphone camera snapshot photo of a [AGE]-year-old male [NATIONALITY] football player, [PERSONALITY], athletic training shirt, natural lighting, unpolished raw photo, visible skin texture, blurred background, real life photo",
+  "face_style": "candid smartphone camera snapshot medium shot bust portrait of a [AGE]-year-old male [NATIONALITY] football player, [PERSONALITY], head and shoulders, showing upper chest, athletic training shirt, natural lighting, unpolished raw photo, visible skin texture, blurred background, real life photo",
   "concurrency_limit": 1,
   "auto_reload_skin_hotkey": false,
   "provider": "comfyui",
