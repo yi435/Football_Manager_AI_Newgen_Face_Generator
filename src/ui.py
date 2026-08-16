@@ -195,11 +195,15 @@ class FMGeneratorUI:
         self.width_var = tk.StringVar()
         self.height_var = tk.StringVar()
         self.concurrency_var = tk.StringVar()
+        self.advanced_var = tk.BooleanVar(value=False)
+        self._tune_rows = {}
 
         def _tune_field(parent, col, row, label, widget):
-            tk.Label(parent, text=label, font=("Segoe UI", 8, "bold"),
-                     fg=self.fg_muted, bg=self.bg_panel).grid(row=row, column=col * 2, sticky="w", padx=(10, 4), pady=(6, 0))
+            lbl = tk.Label(parent, text=label, font=("Segoe UI", 8, "bold"),
+                           fg=self.fg_muted, bg=self.bg_panel)
+            lbl.grid(row=row, column=col * 2, sticky="w", padx=(10, 4), pady=(6, 0))
             widget.grid(row=row, column=col * 2 + 1, sticky="w", padx=(0, 10), pady=(6, 0))
+            self._tune_rows.setdefault(row, []).extend([lbl, widget])
             return widget
 
         steps_spin = tk.Spinbox(tuning_frame, from_=1, to=150, width=6, textvariable=self.steps_var,
@@ -250,6 +254,18 @@ class FMGeneratorUI:
             w.bind("<<Decrement>>", lambda e: self._save_settings())
         for cb in (sampler_cb, scheduler_cb):
             cb.bind("<<ComboboxSelected>>", lambda e: self._save_settings())
+
+        self.advanced_chk = tk.Checkbutton(
+            tuning_frame, text="Show advanced settings (steps, CFG, sampler, concurrency)",
+            variable=self.advanced_var, command=self._toggle_advanced,
+            bg=self.bg_panel, fg=self.fg_muted, selectcolor=self.bg_input,
+            activebackground=self.bg_panel, activeforeground=self.fg_light,
+            font=("Segoe UI", 8))
+        self.advanced_chk.grid(row=4, column=0, columnspan=2, sticky="w",
+                               padx=10, pady=(4, 0))
+        # Start in casual mode: hide the technical rows (steps/CFG, sampler/
+        # scheduler, concurrency) and keep only width & height visible.
+        self._apply_advanced(False)
 
         # Status and Controls Row
         control_status_frame = tk.Frame(main_container, bg=self.bg_dark)
@@ -339,7 +355,26 @@ class FMGeneratorUI:
             "comfyui_width": int(width) if width is not None else None,
             "comfyui_height": int(height) if height is not None else None,
             "concurrency_limit": int(concurrency) if concurrency is not None else None,
+            "show_advanced_settings": self.advanced_var.get(),
         }
+
+    def _apply_advanced(self, show):
+        """Shows/hides the technical tuning rows without saving anything."""
+        for row in (0, 1, 3):  # steps/CFG, sampler/scheduler, concurrency
+            for w in self._tune_rows.get(row, []):
+                if show:
+                    w.grid()
+                else:
+                    w.grid_remove()
+
+    def _toggle_advanced(self):
+        self._apply_advanced(self.advanced_var.get())
+        self._save_settings()
+
+    def set_provider_status(self, text, color=None):
+        """Thread-safe status text next to the Test Connection button."""
+        self.root.after(0, lambda: self.provider_status_lbl.configure(
+            text=text, fg=color or self.fg_muted))
 
     def _save_settings(self):
         self.save_config_callback(
@@ -388,7 +423,6 @@ class FMGeneratorUI:
             self.log(f"[Error] Provider check failed: {e}")
         finally:
             self.root.after(0, lambda: self.check_btn.configure(state="normal"))
-
     def _toggle_watcher(self):
         if self.watcher_running:
             self.stop_callback()
@@ -466,7 +500,8 @@ class FMGeneratorUI:
     def load_config(self, watch_dir, graphics_dir, auto_reload, provider="comfyui",
                     comfyui_base_url="http://127.0.0.1:8188",
                     steps=25, cfg=6.0, sampler="euler", scheduler="karras",
-                    width=896, height=1152, concurrency_limit=1):
+                    width=896, height=1152, concurrency_limit=1,
+                    show_advanced=False):
         self.watch_path_var.set(watch_dir)
         self.graphics_path_var.set(graphics_dir)
         self.auto_reload_var.set(auto_reload)
@@ -482,4 +517,6 @@ class FMGeneratorUI:
         self.width_var.set(width)
         self.height_var.set(height)
         self.concurrency_var.set(concurrency_limit)
+        self.advanced_var.set(bool(show_advanced))
+        self._apply_advanced(bool(show_advanced))
         self.log("[Info] Settings loaded successfully.")

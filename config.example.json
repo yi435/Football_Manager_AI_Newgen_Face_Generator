@@ -13,5 +13,6 @@
   "comfyui_sampler": "euler",
   "comfyui_scheduler": "karras",
   "comfyui_width": 896,
-  "comfyui_height": 1152
+  "comfyui_height": 1152,
+  "show_advanced_settings": false
 }

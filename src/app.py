@@ -27,7 +27,8 @@ DEFAULT_CONFIG = {
     "comfyui_sampler": "euler",
     "comfyui_scheduler": "karras",
     "comfyui_width": 896,
-    "comfyui_height": 1152
+    "comfyui_height": 1152,
+    "show_advanced_settings": False
 }
 
 
@@ -72,7 +73,8 @@ class FMGeneratorApp:
             self.config.get("comfyui_scheduler", "karras"),
             self.config.get("comfyui_width", 896),
             self.config.get("comfyui_height", 1152),
-            self.config.get("concurrency_limit", 1)
+            self.config.get("concurrency_limit", 1),
+            self.config.get("show_advanced_settings", False)
         )
         
         self.watcher = None
@@ -93,8 +95,8 @@ class FMGeneratorApp:
             return
         try:
             import aiohttp
+            base = self.config.get("comfyui_base_url", "http://127.0.0.1:8188")
             async def _ping():
-                base = self.config.get("comfyui_base_url", "http://127.0.0.1:8188")
                 async with aiohttp.ClientSession() as s:
                     try:
                         async with s.get(f"{base}/system_stats", timeout=3,
@@ -102,29 +104,33 @@ class FMGeneratorApp:
                             return r.status == 200
                     except Exception:
                         return False
-            if asyncio.run(_ping()):
-                return
-            launcher = os.path.join(install_dir, "run_nvidia_gpu.bat")
-            if not os.path.exists(launcher):
-                launcher = os.path.join(install_dir, "run_cpu.bat")
-            if not os.path.exists(launcher):
-                print("[Warning] ComfyUI launcher not found — will not start.")
-                return
-            # Run the .bat hidden (no console window flashes up) and detached,
-            # so it keeps running even if the window manager is busy.
-            subprocess.Popen([launcher], cwd=install_dir, shell=True,
-                             creationflags=subprocess.CREATE_NO_WINDOW)
-            print(f"[Info] Auto-started embedded ComfyUI from {launcher}")
+            if not asyncio.run(_ping()):
+                launcher = os.path.join(install_dir, "run_nvidia_gpu.bat")
+                if not os.path.exists(launcher):
+                    launcher = os.path.join(install_dir, "run_cpu.bat")
+                if not os.path.exists(launcher):
+                    print("[Warning] ComfyUI launcher not found — will not start.")
+                else:
+                    # Run the .bat hidden (no console window flashes up) and
+                    # detached, so it keeps running on its own.
+                    subprocess.Popen([launcher], cwd=install_dir, shell=True,
+                                     creationflags=subprocess.CREATE_NO_WINDOW)
+                    print(f"[Info] Auto-started embedded ComfyUI from {launcher}")
         except Exception as e:
             print(f"[Warning] Could not auto-start ComfyUI: {e}")
 
-        # Background: report once the server actually answers, since ComfyUI
-        # can take a couple of minutes to boot on first launch.
+        # Background: wait until the server answers (it can take a couple of
+        # minutes to boot on first launch) and reflect it in the UI status.
+        base = self.config.get("comfyui_base_url", "http://127.0.0.1:8188")
         def _monitor_ready():
             from src.generator import wait_for_comfyui
-            base = self.config.get("comfyui_base_url", "http://127.0.0.1:8188")
             if asyncio.run(wait_for_comfyui(base, timeout=180)):
+                self.ui.set_provider_status("Connected", "#00b894")
                 self.ui.log("[Info] ComfyUI is ready — you can generate now.")
+            else:
+                self.ui.set_provider_status("Offline", "#d63031")
+                self.ui.log("[Warning] ComfyUI did not come up — click "
+                            "'Test Connection' or run Maintenance to repair.")
         threading.Thread(target=_monitor_ready, daemon=True).start()
 
     def _load_config(self):
