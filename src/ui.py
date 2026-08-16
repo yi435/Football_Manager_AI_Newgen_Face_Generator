@@ -7,7 +7,7 @@ from tkinter import filedialog, ttk, messagebox
 from tkinter.scrolledtext import ScrolledText
 
 class FMGeneratorUI:
-    def __init__(self, root, start_callback, stop_callback, save_config_callback, run_now_callback, check_provider_callback=None, maintenance_callback=None):
+    def __init__(self, root, start_callback, stop_callback, save_config_callback, run_now_callback, check_provider_callback=None, maintenance_callback=None, face_style_callback=None):
         self.root = root
         self.start_callback = start_callback
         self.stop_callback = stop_callback
@@ -15,6 +15,7 @@ class FMGeneratorUI:
         self.run_now_callback = run_now_callback
         self.check_provider_callback = check_provider_callback
         self.maintenance_callback = maintenance_callback
+        self.face_style_callback = face_style_callback
         
         # Window settings
         self.root.title("FM AI Newgen Generator")
@@ -164,6 +165,12 @@ class FMGeneratorUI:
                                          activeforeground=self.fg_light, bd=0, padx=10, pady=2,
                                          command=self._open_maintenance)
         self.maintenance_btn.pack(side="left", padx=(0, 15))
+
+        self.style_btn = tk.Button(provider_row, text="Edit Face Style…", font=("Segoe UI", 9, "bold"),
+                                   bg=self.bg_input, fg=self.fg_light, activebackground="#3a3a44",
+                                   activeforeground=self.fg_light, bd=0, padx=10, pady=2,
+                                   command=self._open_face_style)
+        self.style_btn.pack(side="left", padx=(0, 15))
 
         self.comfy_url_lbl = tk.Label(provider_row, text="ComfyUI URL:", font=("Segoe UI", 9, "bold"),
                                       fg=self.fg_light, bg=self.bg_panel)
@@ -403,6 +410,76 @@ class FMGeneratorUI:
             self.maintenance_callback()
         else:
             self.log("[Info] Maintenance is only available in the packaged app.")
+
+    def _open_face_style(self):
+        if not self.face_style_callback:
+            self.log("[Info] Face style editor is not available in this build.")
+            return
+        data = self.face_style_callback("get")
+        if not data:
+            return
+        positive, negative, default_pos, default_neg = data
+
+        win = tk.Toplevel(self.root)
+        win.title("Face Style & Prompt Editor")
+        win.configure(bg=self.bg_dark)
+        win.geometry("700x580")
+        win.minsize(620, 520)
+
+        tk.Label(win, text="Face Style (positive prompt)", font=("Segoe UI", 10, "bold"),
+                 fg=self.fg_light, bg=self.bg_dark).pack(anchor="w", padx=20, pady=(16, 4))
+        tk.Label(win, text="This text describes every player photo. [AGE], [NATIONALITY] and "
+                           "[PERSONALITY] are filled in automatically.",
+                 font=("Segoe UI", 8), fg=self.fg_muted, bg=self.bg_dark).pack(anchor="w", padx=20, pady=(0, 6))
+        pos_text = tk.Text(win, height=8, wrap="word", font=("Segoe UI", 9),
+                           bg=self.bg_input, fg=self.fg_light, insertbackground=self.fg_light,
+                           bd=0, highlightthickness=1, highlightbackground=self.bg_input,
+                           highlightcolor=self.color_accent, padx=8, pady=6)
+        pos_text.pack(fill="x", padx=20)
+        pos_text.insert("1.0", positive)
+
+        tk.Label(win, text="Negative prompt (things to avoid)", font=("Segoe UI", 10, "bold"),
+                 fg=self.fg_light, bg=self.bg_dark).pack(anchor="w", padx=20, pady=(14, 4))
+        tk.Label(win, text="Everything listed here is discouraged: bad backgrounds, logos, "
+                           "AI-looking skin, wrong poses…",
+                 font=("Segoe UI", 8), fg=self.fg_muted, bg=self.bg_dark).pack(anchor="w", padx=20, pady=(0, 6))
+        neg_text = tk.Text(win, height=7, wrap="word", font=("Segoe UI", 9),
+                           bg=self.bg_input, fg=self.fg_light, insertbackground=self.fg_light,
+                           bd=0, highlightthickness=1, highlightbackground=self.bg_input,
+                           highlightcolor=self.color_accent, padx=8, pady=6)
+        neg_text.pack(fill="x", padx=20)
+        neg_text.insert("1.0", negative)
+
+        tk.Label(win, text="Tip: players under 20 are automatically described as teenagers with "
+                           "smooth, youthful features — no need to add that yourself.",
+                 font=("Segoe UI", 8), fg=self.color_warning, bg=self.bg_dark).pack(anchor="w", padx=20, pady=(10, 0))
+
+        def _save():
+            p = pos_text.get("1.0", "end-1c").strip()
+            n = neg_text.get("1.0", "end-1c").strip()
+            if not p:
+                messagebox.showwarning("Empty style", "The positive prompt cannot be empty.")
+                return
+            self.face_style_callback("save", p, n)
+            win.destroy()
+
+        def _reset():
+            pos_text.delete("1.0", "end")
+            pos_text.insert("1.0", default_pos)
+            neg_text.delete("1.0", "end")
+            neg_text.insert("1.0", default_neg)
+
+        btn_row = tk.Frame(win, bg=self.bg_dark)
+        btn_row.pack(fill="x", padx=20, pady=16)
+        tk.Button(btn_row, text="Save & Close", font=("Segoe UI", 10, "bold"), bg=self.color_accent,
+                  fg=self.fg_light, activebackground="#5848c2", activeforeground=self.fg_light,
+                  bd=0, padx=18, pady=6, command=_save).pack(side="left")
+        tk.Button(btn_row, text="Reset to Defaults", font=("Segoe UI", 9, "bold"), bg=self.bg_input,
+                  fg=self.fg_light, activebackground="#3a3a44", activeforeground=self.fg_light,
+                  bd=0, padx=14, pady=6, command=_reset).pack(side="left", padx=(10, 0))
+        tk.Button(btn_row, text="Cancel", font=("Segoe UI", 9), bg=self.bg_input,
+                  fg=self.fg_muted, activebackground="#3a3a44", activeforeground=self.fg_light,
+                  bd=0, padx=14, pady=6, command=win.destroy).pack(side="right")
 
     def _check_provider(self):
         if not self.check_provider_callback:

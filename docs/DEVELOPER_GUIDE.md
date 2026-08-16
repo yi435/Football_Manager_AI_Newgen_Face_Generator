@@ -74,8 +74,10 @@ graph TD
 
 *   **Purpose:** Builds SDXL-friendly natural-language prompts from the `face_style` template in `config.json`.
 *   **Template placeholders:** `[AGE]`, `[NATIONALITY]`, `[PERSONALITY]` are substituted per player.
-*   **Framing / zoom-out fix:** The template forces a **bust shot** with headroom so the player's head does not fill the whole frame in FM's UI (previously faces hid club kit numbers behind the portrait):
-    > `"candid smartphone camera snapshot medium shot bust portrait of a [AGE]-year-old male [NATIONALITY] football player, [PERSONALITY], head and shoulders, showing upper chest, athletic training shirt, natural lighting, unpolished raw photo, visible skin texture, blurred background, real life photo"`
+*   **Framing / zoom-out fix:** The template forces a **head-and-shoulders media-day headshot** with a plain studio background so players sit cleanly inside FM's portrait frame and nothing distracts from the face:
+    > `"professional sports media day headshot portrait of a [AGE]-year-old male [NATIONALITY] football player, [PERSONALITY], clean blank unbranded solid-color v-neck athletic shirt, direct frontal view, head and shoulders, looking directly into camera, neutral expression, isolated on a plain solid white studio background, high-key studio lighting, shot on 85mm portrait lens, f/4, sharp focus on eyes, highly detailed, photorealistic, realistic skin texture, visible pores, real life photo"`
+*   **Default negative prompt** blocks training-pitch scenery, brand logos/badges, crossed arms/hands/full body, and waxy "AI" skin — these were the main realism killers:
+    > `"wrinkles, full body, crossed arms, hands, legs, lower body, background scenery, grass, soccer field, training pitch, trees, crowd, text, brand logos, badges, graphics, distorted logos, deformed crests, deformed apparel, waxy skin, CGI, 3D render, cartoon, illustration, drawing, digital art, makeup, smooth skin, airbrushed, blurred eyes, double chin, out of focus"`
 *   **Age milestones** (per-UID age progression; faces stay consistent because the UID seeds the image):
     *   *Under 20:* swaps `"male"` → `"teenage male"`, `"football player"` → `"youth academy soccer player"`, and appends `"soft youthful facial features, smooth skin"` to avoid adult-looking regens.
     *   *Milestone ~20:* high beard/stubble density for South American and Middle Eastern players.

@@ -15,13 +15,13 @@ from src.xml_manager import XMLManager
 DEFAULT_CONFIG = {
     "watch_directory": "./exports",
     "graphics_directory": "./graphics/AI Newgen Faces",
-    "face_style": "professional headshot photo of a male [AGE]-year-old [NATIONALITY] football player, [PERSONALITY], athletic build, realistic face, highly detailed skin texture, professional sports photography, neutral background",
+    "face_style": "professional sports media day headshot portrait of a [AGE]-year-old male [NATIONALITY] football player, [PERSONALITY], clean blank unbranded solid-color v-neck athletic shirt, direct frontal view, head and shoulders, looking directly into camera, neutral expression, isolated on a plain solid white studio background, high-key studio lighting, shot on 85mm portrait lens, f/4, sharp focus on eyes, highly detailed, photorealistic, realistic skin texture, visible pores, real life photo",
     "concurrency_limit": 5,
     "auto_reload_skin_hotkey": False,
     "provider": "comfyui",
     "comfyui_base_url": "http://127.0.0.1:8188",
     "comfyui_model": "",
-    "comfyui_negative_prompt": "deformed, blurry, out of focus, low quality, bad anatomy, watermark, text, logo, cartoon, illustration, 3d render, painting, extra fingers, mutated hands, extra limbs, ugly, distorted face, oversaturated",
+    "comfyui_negative_prompt": "wrinkles, full body, crossed arms, hands, legs, lower body, background scenery, grass, soccer field, training pitch, trees, crowd, text, brand logos, badges, graphics, distorted logos, deformed crests, deformed apparel, waxy skin, CGI, 3D render, cartoon, illustration, drawing, digital art, makeup, smooth skin, airbrushed, blurred eyes, double chin, out of focus",
     "comfyui_steps": 25,
     "comfyui_cfg": 6.0,
     "comfyui_sampler": "euler",
@@ -57,7 +57,8 @@ class FMGeneratorApp:
             save_config_callback=self.save_config,
             run_now_callback=self.run_now,
             check_provider_callback=self.check_provider,
-            maintenance_callback=self.open_maintenance
+            maintenance_callback=self.open_maintenance,
+            face_style_callback=self.open_face_style
         )
         
         # Load configuration into UI
@@ -179,6 +180,31 @@ class FMGeneratorApp:
                 json.dump(self.config, f, indent=2)
         except Exception as e:
             self.ui.log(f"[Error] Failed to save config.json: {e}")
+
+    def open_face_style(self, mode, positive=None, negative=None):
+        """
+        Backing callback for the "Edit Face Style…" dialog.
+        - mode "get":  returns (positive, negative, default_positive, default_negative)
+        - mode "save": persists both prompts to config.json
+        """
+        if mode == "get":
+            return (
+                self.config.get("face_style", DEFAULT_CONFIG["face_style"]),
+                self.config.get("comfyui_negative_prompt",
+                                DEFAULT_CONFIG["comfyui_negative_prompt"]),
+                DEFAULT_CONFIG["face_style"],
+                DEFAULT_CONFIG["comfyui_negative_prompt"],
+            )
+        if mode == "save":
+            self.config["face_style"] = positive
+            self.config["comfyui_negative_prompt"] = negative
+            try:
+                with open(self.config_path, "w", encoding="utf-8") as f:
+                    json.dump(self.config, f, indent=2)
+                self.ui.log("[Info] Face style saved — new faces will use it.")
+            except Exception as e:
+                self.ui.log(f"[Error] Failed to save face style: {e}")
+        return None
 
     def check_provider(self):
         """

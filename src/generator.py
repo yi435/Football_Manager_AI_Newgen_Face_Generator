@@ -8,9 +8,12 @@ import aiohttp
 
 # Default negative prompt tuned for photorealistic SDXL face generation
 DEFAULT_NEGATIVE_PROMPT = (
-    "deformed, blurry, out of focus, low quality, bad anatomy, watermark, "
-    "text, logo, cartoon, illustration, 3d render, painting, extra fingers, "
-    "mutated hands, extra limbs, ugly, distorted face, oversaturated"
+    "wrinkles, full body, crossed arms, hands, legs, lower body, background "
+    "scenery, grass, soccer field, training pitch, trees, crowd, text, brand "
+    "logos, badges, graphics, distorted logos, deformed crests, deformed "
+    "apparel, waxy skin, CGI, 3D render, cartoon, illustration, drawing, "
+    "digital art, makeup, smooth skin, airbrushed, blurred eyes, double chin, "
+    "out of focus"
 )
 
 PROVIDER_NAMES = {

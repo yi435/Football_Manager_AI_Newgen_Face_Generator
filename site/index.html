@@ -15,9 +15,9 @@
     --accent: #6c5ce7;
     --success: #00b894;
     --warning: #fdcb6e;
-    --active: #00cec9;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
     background: var(--bg);
@@ -25,50 +25,89 @@
     line-height: 1.6;
   }
   .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
-  header { padding: 28px 0 8px; border-bottom: 1px solid #2a2a30; }
-  header .logo { font-size: 20px; font-weight: 700; color: var(--accent); }
-  nav a { color: var(--muted); text-decoration: none; margin-left: 20px; font-size: 14px; }
+  header { padding: 22px 0; }
+  header .logo { font-size: 19px; font-weight: 700; color: var(--accent); letter-spacing: .3px; }
+  nav { display: flex; gap: 18px; flex-wrap: wrap; }
+  nav a { color: var(--muted); text-decoration: none; font-size: 14px; }
   nav a:hover { color: var(--light); }
-  .hero { text-align: center; padding: 72px 24px 56px; }
-  .hero h1 { font-size: 40px; font-weight: 800; margin-bottom: 14px; }
+  .hero { text-align: center; padding: 72px 24px 40px; }
+  .hero .kicker { color: var(--accent); font-weight: 700; letter-spacing: 2px; font-size: 13px; margin-bottom: 14px; text-transform: uppercase; }
+  .hero h1 { font-size: 42px; font-weight: 800; line-height: 1.15; margin-bottom: 16px; }
   .hero h1 span { color: var(--accent); }
-  .hero p { font-size: 17px; color: var(--muted); max-width: 640px; margin: 0 auto 34px; }
+  .hero p.lede { font-size: 17px; color: var(--muted); max-width: 620px; margin: 0 auto; }
+  .hero .cta-row { margin-top: 32px; }
   .btn {
-    display: inline-block; padding: 16px 34px; font-size: 17px; font-weight: 700;
+    display: inline-block; padding: 16px 34px; font-size: 16px; font-weight: 700;
     border-radius: 8px; text-decoration: none; cursor: pointer;
   }
   .btn-primary { background: var(--accent); color: var(--light); }
   .btn-primary:hover { background: #5848c2; }
-  .btn-ghost { background: var(--panel); color: var(--light); border: 1px solid #33333c; margin-left: 14px; }
-  .btn-ghost:hover { border-color: var(--accent); }
-  .sub { margin-top: 14px; font-size: 13px; color: var(--muted); }
+  .hero .os-line { margin-top: 16px; font-size: 13px; color: var(--muted); }
+  .hero .expect { margin-top: 6px; font-size: 13px; color: var(--muted); }
+  .code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--warning); }
+  .proof {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 34px;
+    margin-top: 36px; padding: 14px 20px; background: var(--panel);
+    border: 1px solid #26262b; border-radius: 10px; font-size: 14px; color: var(--muted);
+  }
+  .proof b { color: var(--light); font-weight: 700; }
+  .proof .code { color: var(--light); }
+  section { padding: 52px 0; border-top: 1px solid #1f1f24; }
+  h2 { font-size: 25px; margin-bottom: 8px; }
+  h2 span { color: var(--accent); }
+  .sec-sub { color: var(--muted); font-size: 14px; margin-bottom: 26px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+  .card { background: var(--panel); border-radius: 10px; padding: 22px; border: 1px solid #26262b; }
+  .card h3 { font-size: 16px; margin-bottom: 8px; color: var(--light); }
+  .card p { font-size: 14px; color: var(--muted); }
+  .steps { counter-reset: step; padding-left: 0; list-style: none; }
+  .steps li {
+    counter-increment: step; padding: 16px 0 16px 46px; position: relative;
+    font-size: 15px; color: var(--muted); border-bottom: 1px solid #1f1f24;
+    display: flex; align-items: flex-start;
+  }
+  .steps li::before {
+    content: counter(step); position: absolute; left: 0; top: 16px; width: 30px; height: 30px;
+    border-radius: 50%; background: var(--accent); color: var(--light); font-weight: 700;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+  .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .6px;
+    padding: 2px 9px; border-radius: 12px; margin-right: 8px; vertical-align: 2px;
+    text-transform: uppercase;
+  }
+  .tag-auto { background: rgba(0,184,148,.15); color: var(--success); }
+  .tag-manual { background: rgba(253,203,110,.15); color: var(--warning); }
+  .steps li strong { color: var(--light); }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { text-align: left; padding: 12px 14px; font-size: 14px; border-bottom: 1px solid #26262b; }
+  th { color: var(--muted); font-weight: 600; }
+  td:first-child { font-weight: 600; white-space: nowrap; }
+  .ok { color: var(--success); }
+  .warn { color: var(--warning); }
+  details { background: var(--panel); border: 1px solid #26262b; border-radius: 10px; padding: 0; margin-bottom: 12px; }
+  details summary {
+    cursor: pointer; padding: 16px 20px; font-weight: 700; font-size: 15px;
+    color: var(--light); list-style: none;
+  }
+  details summary::after { content: "▾"; float: right; color: var(--accent); }
+  details[open] summary::after { content: "▴"; }
+  details .body { padding: 0 20px 18px; font-size: 14px; color: var(--muted); }
+  details .body p { margin-top: 8px; }
+  .cta-band { text-align: center; }
+  .cta-band h2 { margin-bottom: 18px; }
+  .sub { margin-top: 12px; font-size: 13px; color: var(--muted); }
   .coming {
     display: inline-block; padding: 16px 34px; font-size: 16px; font-weight: 700;
     border-radius: 8px; background: var(--panel); color: var(--muted);
     border: 1px dashed #33333c;
   }
-  section { padding: 56px 0; border-top: 1px solid #1f1f24; }
-  h2 { font-size: 26px; margin-bottom: 24px; }
-  h2 span { color: var(--accent); }
-  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
-  .card { background: var(--panel); border-radius: 10px; padding: 22px; border: 1px solid #26262b; }
-  .card h3 { font-size: 16px; margin-bottom: 8px; color: var(--active); }
-  .card p { font-size: 14px; color: var(--muted); }
-  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-  th, td { text-align: left; padding: 12px 14px; font-size: 14px; border-bottom: 1px solid #26262b; }
-  th { color: var(--muted); font-weight: 600; }
-  td:first-child { font-weight: 600; }
-  .ok { color: var(--success); }
-  .warn { color: var(--warning); }
-  ol.steps { counter-reset: step; padding-left: 0; list-style: none; }
-  ol.steps li { counter-increment: step; padding: 12px 0 12px 44px; position: relative; font-size: 15px; color: var(--muted); border-bottom: 1px solid #1f1f24; }
-  ol.steps li::before { content: counter(step); position: absolute; left: 0; top: 12px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--light); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 14px; }
   footer { text-align: center; padding: 40px 0; color: var(--muted); font-size: 13px; border-top: 1px solid #1f1f24; }
   footer a { color: var(--muted); }
-  .badge { display: inline-block; background: var(--panel); color: var(--muted); border: 1px solid #33333c; border-radius: 20px; padding: 4px 14px; font-size: 13px; margin: 0 4px 8px 0; }
   @media (max-width: 640px) {
-    .hero h1 { font-size: 30px; }
-    .btn-ghost { margin-left: 0; margin-top: 10px; }
+    .hero h1 { font-size: 31px; }
+    nav a { font-size: 13px; }
+    header .wrap { flex-direction: column; gap: 8px; text-align: center; }
   }
 </style>
 </head>
@@ -78,9 +117,10 @@
   <div class="wrap" style="display:flex; justify-content:space-between; align-items:center;">
     <div class="logo">⚽ FM Newgen Generator</div>
     <nav>
-      <a href="#features">Features</a>
+      <a href="#what">What it does</a>
+      <a href="#how">How it works</a>
       <a href="#requirements">Requirements</a>
-      <a href="#install">Install</a>
+      <a href="#quickstart">Quick start</a>
       <a href="#faq">FAQ</a>
     </nav>
   </div>
@@ -88,138 +128,158 @@
 
 <div class="hero">
   <div class="wrap">
+    <div class="kicker">Free fan tool · Windows · v1.0</div>
     <h1>Realistic AI Faces for <span>Football Manager 2024</span></h1>
-    <p>Automatically generate photorealistic portraits for every youth academy player in your save. Free, unlimited, and 100% offline — running on your own GPU.</p>
-    <div>
-      <a class="btn btn-primary" href="#download">Download for Windows</a>
-      <a class="btn btn-ghost" href="#install">Setup Guide</a>
-    </div>
-    <div class="sub">One-click installer · includes the AI engine and realism model · no cloud, no credits, no limits</div>
-    <div style="margin-top:22px;">
-      <span class="badge">Offline</span>
-      <span class="badge">Free forever</span>
-      <span class="badge">NVIDIA GPU</span>
-      <span class="badge">FM24 NewGens</span>
+    <p class="lede">Automatically generate photorealistic, unlimited portraits for every youth academy player in your save. 100% offline — it runs on your own GPU.</p>
+    <div class="cta-row" id="herocta"></div>
+    <p class="os-line">Windows 10 / 11 &nbsp;·&nbsp; NVIDIA GPU with 6–8 GB VRAM</p>
+    <p class="expect">First run downloads the AI engine + realism model (~9 GB) — a one-time setup.</p>
+    <div class="proof">
+      <span><b>v1.0</b> release</span>
+      <span>Installer <b>~50–150&nbsp;MB</b></span>
+      <span>Windows <b>10 / 11</b></span>
+      <span>Free — <b>no credits, no limits</b></span>
+      <span class="code">100% offline</span>
     </div>
   </div>
 </div>
 
-<section id="features">
+<section id="what">
   <div class="wrap">
-    <h2>Why you'll love it <span>▾</span></h2>
-    <div class="features">
+    <h2>What it <span>does</span></h2>
+    <p class="sec-sub">Four things it handles for you, every time a new academy player appears in your save.</p>
+    <div class="grid">
       <div class="card">
-        <h3>Unlimited & free</h3>
-        <p>Faces are generated on your own GPU with local ComfyUI — no subscription, credits, or rate limits. Ever.</p>
+        <h3>Realistic academy faces</h3>
+        <p>Photorealistic headshots on a clean studio background — no logos, no grass, no waxy “AI” skin. Age, nationality and personality shape each portrait.</p>
+      </div>
+      <div class="card">
+        <h3>Auto-watch &amp; generate</h3>
+        <p>Point it at your exports folder once. The app watches it, spots new players, and generates every face automatically.</p>
       </div>
       <div class="card">
         <h3>Consistent aging</h3>
-        <p>Each player keeps the same facial structure as they grow. Hair, stubble and features update at ages 16, 20, 24 & 28.</p>
+        <p>Each player keeps the same facial structure as they grow. Hair, stubble and features update at ages 16, 20, 24 &amp; 28.</p>
       </div>
       <div class="card">
-        <h3>Realistic demographics</h3>
-        <p>Weighted ethnic diversity so a French academy looks French, a Brazilian one looks Brazilian.</p>
-      </div>
-      <div class="card">
-        <h3>Personality-driven</h3>
-        <p>A "Model Citizen" looks composed and clean-cut; a "Temperamental" one wears a stern face. Personality shapes the portrait.</p>
-      </div>
-      <div class="card">
-        <h3>Frame-friendly portraits</h3>
-        <p>Bust framing and a 7:9 portrait canvas keep faces from covering the kit numbers in the FM UI.</p>
-      </div>
-      <div class="card">
-        <h3>Keeps your real faces</h3>
-        <p>Generated faces live in their own folder &amp; config, so your real-player facepack stays untouched.</p>
+        <h3>Local &amp; free forever</h3>
+        <p>Everything runs on your GPU with a bundled offline engine. No cloud, no API keys, no subscription — your faces never leave your PC.</p>
       </div>
     </div>
   </div>
 </section>
 
-<section id="download">
+<section id="how">
   <div class="wrap">
-    <h2>Download <span>▾</span></h2>
-    <p style="color:var(--muted); margin-bottom:18px;">
-      The installer is a small EXE. On first run it downloads the AI engine (~2&nbsp;GB) and the realism model (~7&nbsp;GB) with a progress bar, then sets everything up automatically.
-    </p>
-    <div id="dl"></div>
+    <h2>How it <span>works</span></h2>
+    <p class="sec-sub">Steps tagged <span class="tag tag-auto">Auto</span> are handled by the app. <span class="tag tag-manual">Manual</span> ones need you, about a minute in FM.</p>
+    <ol class="steps">
+      <li><span class="tag tag-auto">Auto</span><div><strong>One-click installer.</strong> Checks your system, downloads the engine (ComfyUI) and the RealVisXL model, and sets everything up with a progress bar.</div></li>
+      <li><span class="tag tag-manual">Manual</span><div><strong>Export your NewGens from FM.</strong> Open <em>Player Search</em> with the NewGen filter, select all (Ctrl+A), then <em>Ctrl+P → To text file</em>. Save into the folder the app is watching.</div></li>
+      <li><span class="tag tag-auto">Auto</span><div><strong>Faces get generated.</strong> The app spots each new player, builds a picture-based prompt from their age/nationality/personality, and renders a face on your GPU.</div></li>
+      <li><span class="tag tag-manual">Manual</span><div><strong>Reload the skin in FM.</strong> <em>Preferences → Interface</em>, untick <em>“Use caching”</em>, then <em>Clear Cache → Reload Skin</em>. The faces appear in-game.</div></li>
+    </ol>
   </div>
 </section>
 
 <section id="requirements">
   <div class="wrap">
-    <h2>Requirements <span>▾</span></h2>
+    <h2>System <span>requirements</span></h2>
+    <p class="sec-sub">Generation is local, so it needs a decent NVIDIA card. CPU-only mode works but is slow.</p>
     <table>
-      <tr><th></th><th>Requirement</th></tr>
       <tr><td>OS</td><td>Windows 10 / 11</td></tr>
-      <tr><td>GPU</td><td>NVIDIA GPU with 6–8&nbsp;GB VRAM <span class="ok">(recommended)</span> <span class="warn">CPU mode works but is slow</span></td></tr>
-      <tr><td>Disk space</td><td>~25&nbsp;GB free (for the engine + model)</td></tr>
+      <tr><td>GPU</td><td>NVIDIA with 6–8&nbsp;GB VRAM <span class="ok">(recommended)</span> <span class="warn">CPU mode works but is slow</span></td></tr>
+      <tr><td>Disk space</td><td>~25&nbsp;GB free (engine + model, one-time)</td></tr>
       <tr><td>Game</td><td>Football Manager 2024 (Windows)</td></tr>
     </table>
   </div>
 </section>
 
-<section id="install">
+<section id="quickstart">
   <div class="wrap">
-    <h2>Install in 3 steps <span>▾</span></h2>
-    <ol class="steps">
-      <li><strong style="color:var(--light);">Download & run the installer.</strong> The wizard checks your system, downloads the AI engine and model, and links everything for you.</li>
-      <li><strong style="color:var(--light);">Point it at FM.</strong> Pick your FM 2024 folder — the app watches for exports and writes faces into the game's graphics folder.</li>
-      <li><strong style="color:var(--light);">Reload the skin.</strong> In FM: <em>Preferences → Interface</em>, untick <em>"Use caching to decrease page loading times"</em>, then <em>Clear Cache → Reload Skin</em>.</li>
-    </ol>
-    <p style="color:var(--muted); font-size:14px; margin-top:14px;">
-      In-game: open <em>Player Search</em> with the NewGen view/filter, select all (Ctrl+A), and press <em>Ctrl+P → To text file</em>. The app generates every new face automatically.
-    </p>
+    <h2>Quick <span>start</span></h2>
+    <p class="sec-sub">The whole flow, in under five minutes.</p>
+    <details open>
+      <summary>Short version</summary>
+      <div class="body">
+        <p>1. Run the installer and let it finish the download + setup.</p>
+        <p>2. Export your NewGens to the watched folder (<em>Ctrl+P → To text file</em>).</p>
+        <p>3. Wait for the faces, then <em>Reload Skin</em> in FM settings.</p>
+      </div>
+    </details>
+    <details>
+      <summary>The FM side: exporting players (exact clicks)</summary>
+      <div class="body">
+        <p>Open <em>Player Search</em> in FM24, switch to the view that lists your NewGens (academy intake / generated players), press <strong>Ctrl+A</strong> to select all rows, then <strong>Ctrl+P</strong> and choose <em>“To text file”</em>. Save it into the folder shown in the app — the app picks it up and generates every face.</p>
+      </div>
+    </details>
+    <details>
+      <summary>GPU notes: which cards work well</summary>
+      <div class="body">
+        <p>A 6–8&nbsp;GB card (e.g. RTX 2060/3060/4060) renders each face in roughly 5–15 seconds. Cards with less VRAM will fall back to CPU mode, which is noticeably slower. Generation runs in the background, so you can keep playing while faces are made.</p>
+      </div>
+    </details>
   </div>
 </section>
 
 <section id="faq">
   <div class="wrap">
-    <h2>FAQ <span>▾</span></h2>
+    <h2>FAQ <span>▸</span></h2>
     <div class="card" style="margin-bottom:14px;">
-      <h3>Why is the download ~9&nbsp;GB on first run?</h3>
-      <p>The small EXE installs a full offline AI engine (ComfyUI) plus the photorealistic RealVisXL model on your machine. It's a one-time download — after that everything is offline and free.</p>
+      <h3>Why is the first download ~9&nbsp;GB?</h3>
+      <p>The small EXE installs a full offline AI engine (ComfyUI) plus the photorealistic RealVisXL model on your PC. One-time download — after that everything is offline and free.</p>
     </div>
     <div class="card" style="margin-bottom:14px;">
-      <h3>Can I generate while playing FM?</h3>
-      <p>Yes. FM is mostly CPU-bound, and generation happens on your GPU. Each face takes ~5–15 seconds on an 8&nbsp;GB card.</p>
+      <h3>It says “ComfyUI not connected” — what do I do?</h3>
+      <p>The app auto-starts the engine and shows a green “Connected” badge once it’s ready. If it stays offline for over a minute, use <em>Maintenance → Repair</em> in the app — it fixes a broken engine or a misplaced model download automatically.</p>
     </div>
     <div class="card" style="margin-bottom:14px;">
-      <h3>Do I need a GPU or cloud API key?</h3>
-      <p>No cloud keys. You just need an NVIDIA GPU with at least 6–8&nbsp;GB VRAM — generation runs 100% locally and offline.</p>
+      <h3>Do I need a cloud / API key?</h3>
+      <p>No. No subscription, no credits, no keys. Generation runs 100% locally on your NVIDIA GPU.</p>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <h3>Does it touch my real-player facepack?</h3>
+      <p>No. NewGen faces are written to a separate graphics folder with their own config, so existing facepacks stay untouched.</p>
     </div>
     <div class="card">
-      <h3>Does it touch my real-player facepack?</h3>
-      <p>No. NewGen faces are written to a separate graphics folder with their own config.xml, so existing facepacks are left untouched.</p>
+      <h3>Who made this?</h3>
+      <p>A solo FM player who wanted a proper academy facepack. It’s free, open (source on request), and not affiliated with Sports Interactive.</p>
     </div>
+  </div>
+</section>
+
+<section class="cta-band" id="download">
+  <div class="wrap">
+    <h2>Ready when you are</h2>
+    <div id="dl"></div>
+    <p class="sub">Free forever · offline · generated on your own GPU</p>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
-    FM AI Newgen Generator · a free fan tool for Football Manager 2024
-    <br>Not affiliated with Sports Interactive. The bundled RealVisXL model is distributed under the <a href="#faq">CreativeML Open RAIL++-M</a> license.
+    FM AI Newgen Generator · a free fan tool for Football Manager 2024 — v1.0
+    <br>Not affiliated with Sports Interactive. The bundled RealVisXL model is distributed under the CreativeML Open RAIL++-M license.
   </div>
 </footer>
 
 <script>
-  // The EXE is uploaded to the site by deploy.bat (site/download/).
-  // If it's not there yet we show a friendly "coming soon" state instead of a
-  // broken link — no code change needed once the installer is published.
   const HOSTED_FILE = "/download/FMNewgenGenerator.exe";
   const GITHUB_LATEST = "https://github.com/yi435/fm/releases/latest/download/FMNewgenGenerator.exe";
-  const el = document.getElementById("dl");
+  const dl = document.getElementById("dl");
+  const hero = document.getElementById("herocta");
 
   function renderDownload(url, ready) {
-    if (!el) return;
-    if (ready) {
-      el.innerHTML =
-        '<a class="btn btn-primary" href="' + url + '">⬇ Download FMNewgenGenerator.exe</a>' +
-        '<div class="sub">Latest Windows build · ~50–150&nbsp;MB · one-click installer</div>';
-    } else {
-      el.innerHTML =
-        '<span class="coming">🚧 Installer coming soon — the first Windows build is being packaged</span>' +
-        '<div class="sub">One-click installer · no cloud, no credits, no limits</div>';
+    if (dl) {
+      dl.innerHTML = ready
+        ? '<a class="btn btn-primary" href="' + url + '">⬇ Download FM AI Newgen Generator <span class="code">v1.0</span></a>'
+        : '<span class="coming">🚧 Installer coming soon — final build is being packaged</span>' +
+          '<div class="sub" style="margin-top:10px;">One-click installer · no cloud, no credits, no limits</div>';
+    }
+    if (hero) {
+      hero.innerHTML = ready
+        ? '<a class="btn btn-primary" href="' + url + '">⬇ Download for Windows</a>'
+        : '<span class="coming">🚧 Download coming soon</span>';
     }
   }
 
