@@ -5,14 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FM AI Newgen Generator — Realistic AI Faces for Football Manager 2024</title>
 <meta name="description" content="Generate photorealistic, unlimited AI faces for your FM24 youth academy players — free, offline, on your own GPU.">
+<meta name="theme-color" content="#121214">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236c5ce7'/%3E%3Ctext x='50' y='68' font-size='58' text-anchor='middle' fill='%23f1f1f5' font-family='sans-serif' font-weight='bold'%3EB%3C/text%3E%3C/svg%3E">
 <style>
   :root {
     --bg: #121214;
+    --bg-2: #17171b;
     --panel: #1a1a1e;
     --input: #26262b;
+    --line: #26262b;
     --light: #f1f1f5;
     --muted: #a5a5b5;
     --accent: #6c5ce7;
+    --accent-soft: rgba(108, 92, 231, .14);
     --success: #00b894;
     --warning: #fdcb6e;
   }
@@ -23,100 +28,186 @@
     background: var(--bg);
     color: var(--light);
     line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
-  header { padding: 22px 0; }
-  header .logo { font-size: 19px; font-weight: 700; color: var(--accent); letter-spacing: .3px; }
-  nav { display: flex; gap: 18px; flex-wrap: wrap; }
-  nav a { color: var(--muted); text-decoration: none; font-size: 14px; }
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- header ---------- */
+  header {
+    padding: 20px 0;
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(18, 18, 20, .82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid transparent;
+  }
+  header.scrolled { border-bottom-color: var(--line); }
+  header .wrap { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+  .logo { font-size: 19px; font-weight: 800; color: var(--light); letter-spacing: .3px; }
+  .logo em { font-style: normal; color: var(--accent); }
+  nav { display: flex; gap: 22px; flex-wrap: wrap; }
+  nav a { color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 600; transition: color .15s ease; }
   nav a:hover { color: var(--light); }
-  .hero { text-align: center; padding: 72px 24px 40px; }
-  .hero .kicker { color: var(--accent); font-weight: 700; letter-spacing: 2px; font-size: 13px; margin-bottom: 14px; text-transform: uppercase; }
-  .hero h1 { font-size: 42px; font-weight: 800; line-height: 1.15; margin-bottom: 16px; }
+
+  /* ---------- hero ---------- */
+  .hero {
+    text-align: center; padding: 96px 24px 56px; position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ""; position: absolute; inset: -40% -10% auto -10%;
+    height: 420px; background:
+      radial-gradient(ellipse 60% 55% at 50% 0%, var(--accent-soft), transparent 70%);
+    pointer-events: none;
+  }
+  .hero .wrap { position: relative; }
+  .kicker {
+    color: var(--accent); font-weight: 700; letter-spacing: 3px; font-size: 13px;
+    margin-bottom: 18px; text-transform: uppercase;
+  }
+  .hero h1 {
+    font-size: 46px; font-weight: 800; letter-spacing: -.5px;
+    line-height: 1.12; margin-bottom: 18px;
+  }
   .hero h1 span { color: var(--accent); }
-  .hero p.lede { font-size: 17px; color: var(--muted); max-width: 620px; margin: 0 auto; }
-  .hero .cta-row { margin-top: 32px; }
+  .lede { font-size: 17px; color: var(--muted); max-width: 620px; margin: 0 auto; }
+  .cta-row { margin-top: 36px; }
   .btn {
     display: inline-block; padding: 16px 34px; font-size: 16px; font-weight: 700;
-    border-radius: 8px; text-decoration: none; cursor: pointer;
+    border-radius: 10px; text-decoration: none; cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, background .2s ease;
   }
-  .btn-primary { background: var(--accent); color: var(--light); }
-  .btn-primary:hover { background: #5848c2; }
-  .hero .os-line { margin-top: 16px; font-size: 13px; color: var(--muted); }
-  .hero .expect { margin-top: 6px; font-size: 13px; color: var(--muted); }
-  .code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--warning); }
+  .btn-primary { background: var(--accent); color: var(--light); box-shadow: 0 8px 26px rgba(108,92,231,.35); }
+  .btn-primary:hover { background: #5848c2; transform: translateY(-2px); box-shadow: 0 12px 30px rgba(108,92,231,.45); }
+  .os-line { margin-top: 18px; font-size: 13px; color: var(--muted); }
+  .expect { margin-top: 4px; font-size: 13px; color: var(--muted); }
+  .code, code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  .code { color: var(--light); }
   .proof {
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 34px;
-    margin-top: 36px; padding: 14px 20px; background: var(--panel);
-    border: 1px solid #26262b; border-radius: 10px; font-size: 14px; color: var(--muted);
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 38px;
+    margin: 40px auto 0; max-width: 760px; padding: 16px 24px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    font-size: 14px; color: var(--muted);
   }
   .proof b { color: var(--light); font-weight: 700; }
-  .proof .code { color: var(--light); }
-  section { padding: 52px 0; border-top: 1px solid #1f1f24; }
-  h2 { font-size: 25px; margin-bottom: 8px; }
+
+  /* ---------- sections ---------- */
+  section { padding: 64px 0; border-top: 1px solid #1e1e23; }
+  h2 { font-size: 30px; letter-spacing: -.3px; margin-bottom: 8px; }
   h2 span { color: var(--accent); }
-  .sec-sub { color: var(--muted); font-size: 14px; margin-bottom: 26px; }
+  .sec-sub { color: var(--muted); font-size: 15px; margin-bottom: 32px; max-width: 640px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
-  .card { background: var(--panel); border-radius: 10px; padding: 22px; border: 1px solid #26262b; }
+  .card {
+    background: var(--panel); border-radius: 12px; padding: 24px;
+    border: 1px solid var(--line); transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .card:hover { transform: translateY(-3px); border-color: #33333c; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
   .card h3 { font-size: 16px; margin-bottom: 8px; color: var(--light); }
   .card p { font-size: 14px; color: var(--muted); }
+
+  /* ---------- showcase ---------- */
+  .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  figure { margin: 0; }
+  .ph {
+    position: relative; aspect-ratio: 4 / 5; border-radius: 12px; overflow: hidden;
+    background:
+      repeating-conic-gradient(#1e1e24 0% 25%, #222229 0% 50%) 50% / 22px 22px;
+    border: 1px solid var(--line);
+  }
+  .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ph.missing img { display: none; }
+  .ph.missing::before {
+    content: "📸\A sample face coming soon"; white-space: pre-wrap;
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    text-align: center; font-size: 13px; color: var(--muted); padding: 12px;
+  }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; text-align: center; }
+  .ba {
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center;
+    margin-top: 34px;
+  }
+  .ba .card { text-align: center; }
+  .ba .card h3 { margin-bottom: 14px; font-size: 15px; letter-spacing: 1px; text-transform: uppercase; }
+  .ba .card.before h3 { color: var(--muted); }
+  .ba .card.after h3 { color: var(--success); }
+  .ba-arrow { font-size: 30px; color: var(--accent); font-weight: 800; }
+
+  /* ---------- steps ---------- */
   .steps { counter-reset: step; padding-left: 0; list-style: none; }
   .steps li {
-    counter-increment: step; padding: 16px 0 16px 46px; position: relative;
-    font-size: 15px; color: var(--muted); border-bottom: 1px solid #1f1f24;
-    display: flex; align-items: flex-start;
+    counter-increment: step; padding: 18px 0 18px 48px; position: relative;
+    font-size: 15px; color: var(--muted); border-bottom: 1px solid #1e1e23;
   }
   .steps li::before {
-    content: counter(step); position: absolute; left: 0; top: 16px; width: 30px; height: 30px;
-    border-radius: 50%; background: var(--accent); color: var(--light); font-weight: 700;
+    content: counter(step); position: absolute; left: 0; top: 18px; width: 32px; height: 32px;
+    border-radius: 50%; background: var(--accent); color: var(--light); font-weight: 800;
     display: flex; align-items: center; justify-content: center; font-size: 14px;
   }
   .tag {
     display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .6px;
-    padding: 2px 9px; border-radius: 12px; margin-right: 8px; vertical-align: 2px;
-    text-transform: uppercase;
+    padding: 2px 9px; border-radius: 12px; margin-right: 8px; vertical-align: 2px; text-transform: uppercase;
   }
   .tag-auto { background: rgba(0,184,148,.15); color: var(--success); }
   .tag-manual { background: rgba(253,203,110,.15); color: var(--warning); }
   .steps li strong { color: var(--light); }
+
+  /* ---------- table ---------- */
   table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-  th, td { text-align: left; padding: 12px 14px; font-size: 14px; border-bottom: 1px solid #26262b; }
+  th, td { text-align: left; padding: 13px 14px; font-size: 14px; border-bottom: 1px solid var(--line); }
   th { color: var(--muted); font-weight: 600; }
   td:first-child { font-weight: 600; white-space: nowrap; }
   .ok { color: var(--success); }
   .warn { color: var(--warning); }
-  details { background: var(--panel); border: 1px solid #26262b; border-radius: 10px; padding: 0; margin-bottom: 12px; }
+
+  /* ---------- accordion ---------- */
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
   details summary {
     cursor: pointer; padding: 16px 20px; font-weight: 700; font-size: 15px;
-    color: var(--light); list-style: none;
+    color: var(--light); list-style: none; transition: background .15s ease;
   }
+  details summary:hover { background: var(--bg-2); }
   details summary::after { content: "▾"; float: right; color: var(--accent); }
   details[open] summary::after { content: "▴"; }
   details .body { padding: 0 20px 18px; font-size: 14px; color: var(--muted); }
   details .body p { margin-top: 8px; }
+  details .body .btn { margin-top: 12px; }
+
+  /* ---------- misc ---------- */
   .cta-band { text-align: center; }
   .cta-band h2 { margin-bottom: 18px; }
-  .sub { margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .sub { margin-top: 14px; font-size: 13px; color: var(--muted); }
   .coming {
     display: inline-block; padding: 16px 34px; font-size: 16px; font-weight: 700;
-    border-radius: 8px; background: var(--panel); color: var(--muted);
+    border-radius: 10px; background: var(--panel); color: var(--muted);
     border: 1px dashed #33333c;
   }
-  footer { text-align: center; padding: 40px 0; color: var(--muted); font-size: 13px; border-top: 1px solid #1f1f24; }
+  footer { text-align: center; padding: 44px 0; color: var(--muted); font-size: 13px; border-top: 1px solid #1e1e23; }
   footer a { color: var(--muted); }
-  @media (max-width: 640px) {
-    .hero h1 { font-size: 31px; }
-    nav a { font-size: 13px; }
-    header .wrap { flex-direction: column; gap: 8px; text-align: center; }
+
+  /* ---------- reveal animation ---------- */
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .5s ease, transform .5s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    * { animation: none !important; }
   }
+
+  @media (max-width: 720px) {
+    .hero h1 { font-size: 34px; }
+    .ba { grid-template-columns: 1fr; }
+    .ba-arrow { transform: rotate(90deg); text-align: center; }
+    header .wrap { flex-direction: column; gap: 8px; }
+    .gallery { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="wrap" style="display:flex; justify-content:space-between; align-items:center;">
-    <div class="logo">⚽ FM Newgen Generator</div>
+<header id="top">
+  <div class="wrap">
+    <div class="logo">FM <em>Newgen</em> Generator</div>
     <nav>
+      <a href="#showcase">Showcase</a>
       <a href="#what">What it does</a>
       <a href="#how">How it works</a>
       <a href="#requirements">Requirements</a>
@@ -133,16 +224,45 @@
     <p class="lede">Automatically generate photorealistic, unlimited portraits for every youth academy player in your save. 100% offline — it runs on your own GPU.</p>
     <div class="cta-row" id="herocta"></div>
     <p class="os-line">Windows 10 / 11 &nbsp;·&nbsp; NVIDIA GPU with 6–8 GB VRAM</p>
-    <p class="expect">First run downloads the AI engine + realism model (~9 GB) — a one-time setup.</p>
+    <p class="expect">First run downloads the AI engine + realism model (~9 GB) — one-time setup.</p>
     <div class="proof">
       <span><b>v1.0</b> release</span>
-      <span>Installer <b>~50–150&nbsp;MB</b></span>
+      <span>Installer <b>~40&nbsp;MB</b> · <b class="code">FMNewgenGenerator.exe</b></span>
       <span>Windows <b>10 / 11</b></span>
       <span>Free — <b>no credits, no limits</b></span>
-      <span class="code">100% offline</span>
+      <span><b class="code">100% offline</b></span>
     </div>
   </div>
 </div>
+
+<section id="showcase">
+  <div class="wrap">
+    <h2>See it in <span>action</span></h2>
+    <p class="sec-sub">Every face is generated locally, then mapped straight into your save. Real results drop here as samples are collected.</p>
+    <div class="gallery">
+      <figure><div class="ph"><img src="img/sample-1.jpg" alt="Sample generated newgen face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · France U19</figcaption></figure>
+      <figure><div class="ph"><img src="img/sample-2.jpg" alt="Sample generated newgen face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · Brazil U20</figcaption></figure>
+      <figure><div class="ph"><img src="img/sample-3.jpg" alt="Sample generated newgen face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · England U18</figcaption></figure>
+      <figure><div class="ph"><img src="img/sample-4.jpg" alt="Sample generated newgen face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · Morocco U19</figcaption></figure>
+      <figure><div class="ph"><img src="img/sample-5.jpg" alt="Sample generated newgen face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · Nigeria U20</figcaption></figure>
+      <figure><div class="ph"><img src="img/sample-6.jpg" alt="Sample generated newgen face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · Japan U18</figcaption></figure>
+    </div>
+    <div class="ba">
+      <div class="card before">
+        <h3>Before</h3>
+        <div class="ph"><img src="img/before-face.jpg" alt="FM player search showing no face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div>
+        <p style="margin-top:12px;">Newgens appear with blank portraits — even with a facepack installed.</p>
+      </div>
+      <div class="ba-arrow">→</div>
+      <div class="card after">
+        <h3>After</h3>
+        <div class="ph"><img src="img/after-face.jpg" alt="Generated face mapped into FM" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div>
+        <p style="margin-top:12px;">A photorealistic face, aged per milestone, mapped into your save.</p>
+      </div>
+    </div>
+    <p class="sub" style="text-align:center;">Screenshots shown are fill-ins — drop your own faces into <code>site/img/</code> to replace them.</p>
+  </div>
+</section>
 
 <section id="what">
   <div class="wrap">
@@ -210,14 +330,14 @@
     <details>
       <summary>The FM side: exporting players (exact clicks)</summary>
       <div class="body">
-        <p>Open <em>Player Search</em> in FM24, switch to the view that lists your NewGens, press <strong>Ctrl+A</strong> to select all rows, then <strong>Ctrl+P</strong> and choose <em>“To text file”</em>. Save it into the folder shown in the app — the app picks it up and generates every face. The included filter finds the exact view of generated players:</p>
+        <p>Open <em>Player Search</em> in FM24, apply the included filter, press <strong>Ctrl+A</strong> to select all rows, then <strong>Ctrl+P</strong> and choose <em>“To text file”</em>. Save it into the folder shown in the app — the app picks it up and generates every face.</p>
         <p><a class="btn btn-primary" style="padding:8px 18px; font-size:14px;" href="/download/fm_newgen_export_filter.fmf" download>⬇ Download NewGen export filter (.fmf)</a></p>
       </div>
     </details>
     <details>
       <summary>GPU notes: which cards work well</summary>
       <div class="body">
-        <p>A 6–8&nbsp;GB card (e.g. RTX 2060/3060/4060) renders each face in roughly 5–15 seconds. Cards with less VRAM will fall back to CPU mode, which is noticeably slower. Generation runs in the background, so you can keep playing while faces are made.</p>
+        <p>A 6–8&nbsp;GB card (e.g. RTX 2060/3060/4060) renders each face in roughly 5–15 seconds. Cards with less VRAM fall back to CPU mode, which is noticeably slower. Generation runs in the background, so you can keep playing while faces are made.</p>
       </div>
     </details>
   </div>
@@ -265,6 +385,27 @@
 </footer>
 
 <script>
+  // --- sticky header border on scroll ---
+  const header = document.getElementById("top");
+  const onScroll = function () { header.classList.toggle("scrolled", window.scrollY > 8); };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  // --- reveal-on-scroll ---
+  const observers = [];
+  if (window.IntersectionObserver && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll(".grid, .gallery, .steps, .ba, table, details, .card").forEach(function (el, i) {
+      el.classList.add("reveal");
+      io.observe(el);
+    });
+  } else {
+    document.querySelectorAll(".reveal").forEach(function (el) { el.classList.add("in"); });
+  }
+
+  // --- download auto-detect (EXE is uploaded to site/download by deploy.bat) ---
   const HOSTED_FILE = "/download/FMNewgenGenerator.exe";
   const GITHUB_LATEST = "https://github.com/yi435/fm/releases/latest/download/FMNewgenGenerator.exe";
   const dl = document.getElementById("dl");
