@@ -1,17 +1,18 @@
 {
   "watch_directory": "./exports",
   "graphics_directory": "./graphics/AI Newgen Faces",
-  "face_style": "candid smartphone camera snapshot medium shot bust portrait of a [AGE]-year-old male [NATIONALITY] football player, [PERSONALITY], head and shoulders, showing upper chest, athletic training shirt, natural lighting, unpolished raw photo, visible skin texture, blurred background, real life photo",
+  "face_style": "professional sports media day headshot portrait of a [AGE]-year-old male [NATIONALITY] football player, [PERSONALITY], clean blank unbranded solid-color v-neck athletic shirt, direct frontal view, head and shoulders, looking directly into camera, neutral expression, isolated on a plain solid white studio background, high-key studio lighting, shot on 85mm portrait lens, f/4, sharp focus on eyes, highly detailed, photorealistic, realistic skin texture, visible pores, real life photo",
   "concurrency_limit": 1,
   "auto_reload_skin_hotkey": false,
   "provider": "comfyui",
   "comfyui_base_url": "http://127.0.0.1:8188",
   "comfyui_model": "",
-  "comfyui_negative_prompt": "deformed, blurry, out of focus, low quality, bad anatomy, watermark, text, logo, cartoon, illustration, 3d render, painting, extra fingers, mutated hands, extra limbs, ugly, distorted face, oversaturated",
+  "comfyui_negative_prompt": "wrinkles, full body, crossed arms, hands, legs, lower body, background scenery, grass, soccer field, training pitch, trees, crowd, text, brand logos, badges, graphics, distorted logos, deformed crests, deformed apparel, waxy skin, CGI, 3D render, cartoon, illustration, drawing, digital art, makeup, smooth skin, airbrushed, blurred eyes, double chin, out of focus",
   "comfyui_steps": 25,
   "comfyui_cfg": 6.0,
-  "comfyui_sampler": "euler_a",
+  "comfyui_sampler": "euler",
   "comfyui_scheduler": "karras",
-  "comfyui_size": 1024,
-  "api_key": ""
+  "comfyui_width": 896,
+  "comfyui_height": 1152,
+  "show_advanced_settings": false
 }

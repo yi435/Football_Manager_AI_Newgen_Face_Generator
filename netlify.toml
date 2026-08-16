@@ -1,0 +1,29 @@
+# Netlify configuration for the FM AI Newgen Generator site.
+# Deploy with:  netlify deploy --prod --dir=site   (see deploy.bat)
+
+[build]
+  publish = "site"
+  # The site was created with a default "hugo" build command in the Netlify
+  # UI. We ship a fully static folder, so override it with a no-op (netlify.toml
+  # takes precedence over UI build settings).
+  command = "true"
+
+# The EXE is uploaded to site/download/FMNewgenGenerator.exe by deploy.bat and
+# served directly from the site (works even while the GitHub repo is private).
+# Netlify's free tier allows files up to 512 MB each — the EXE is well under.
+
+# Stable short URL that redirects to the newest GitHub Release asset. Useful
+# if the repo is ever made public (site/download no longer needed).
+[[redirects]]
+  from = "/latest"
+  to = "https://github.com/yi435/fm/releases/latest/download/FMNewgenGenerator.exe"
+  status = 302
+  force = true
+
+# SPA-ish fallback: serve index.html for any unmatched path (files under
+# /download are still served directly because this rule is not forced).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false

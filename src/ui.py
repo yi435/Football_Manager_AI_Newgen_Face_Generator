@@ -7,17 +7,19 @@ from tkinter import filedialog, ttk, messagebox
 from tkinter.scrolledtext import ScrolledText
 
 class FMGeneratorUI:
-    def __init__(self, root, start_callback, stop_callback, save_config_callback, run_now_callback, check_provider_callback=None):
+    def __init__(self, root, start_callback, stop_callback, save_config_callback, run_now_callback, check_provider_callback=None, maintenance_callback=None, face_style_callback=None):
         self.root = root
         self.start_callback = start_callback
         self.stop_callback = stop_callback
         self.save_config_callback = save_config_callback
         self.run_now_callback = run_now_callback
         self.check_provider_callback = check_provider_callback
+        self.maintenance_callback = maintenance_callback
+        self.face_style_callback = face_style_callback
         
         # Window settings
         self.root.title("FM AI Newgen Generator")
-        self.root.geometry("780x580")
+        self.root.geometry("880x700")
         self.root.resizable(True, True)
         
         # Color Theme (Premium Dark Mode)
@@ -141,8 +143,7 @@ class FMGeneratorUI:
                  fg=self.fg_light, bg=self.bg_panel).pack(side="left")
 
         self.provider_labels = {
-            "comfyui": "Local ComfyUI (SDXL)",
-            "pollinations": "Pollinations.ai (cloud)"
+            "comfyui": "Local ComfyUI (SDXL)"
         }
         self.provider_rev = {v: k for k, v in self.provider_labels.items()}
         self.provider_var = tk.StringVar(value=self.provider_labels["comfyui"])
@@ -159,6 +160,18 @@ class FMGeneratorUI:
                                    command=self._check_provider)
         self.check_btn.pack(side="left", padx=(0, 15))
 
+        self.maintenance_btn = tk.Button(provider_row, text="Maintenance", font=("Segoe UI", 9, "bold"),
+                                         bg=self.bg_input, fg=self.fg_light, activebackground="#3a3a44",
+                                         activeforeground=self.fg_light, bd=0, padx=10, pady=2,
+                                         command=self._open_maintenance)
+        self.maintenance_btn.pack(side="left", padx=(0, 15))
+
+        self.style_btn = tk.Button(provider_row, text="Edit Face Style…", font=("Segoe UI", 9, "bold"),
+                                   bg=self.bg_input, fg=self.fg_light, activebackground="#3a3a44",
+                                   activeforeground=self.fg_light, bd=0, padx=10, pady=2,
+                                   command=self._open_face_style)
+        self.style_btn.pack(side="left", padx=(0, 15))
+
         self.comfy_url_lbl = tk.Label(provider_row, text="ComfyUI URL:", font=("Segoe UI", 9, "bold"),
                                       fg=self.fg_light, bg=self.bg_panel)
         self.comfy_url_lbl.pack(side="left")
@@ -173,6 +186,93 @@ class FMGeneratorUI:
         self.provider_status_lbl = tk.Label(provider_row, text="", font=("Segoe UI", 8),
                                             fg=self.fg_muted, bg=self.bg_panel)
         self.provider_status_lbl.pack(side="left", padx=(10, 0))
+
+        # Generation tuning row
+        tuning_frame = tk.LabelFrame(path_frame, text=" Generation Settings (ComfyUI) ",
+                                     font=("Segoe UI", 9, "bold"), fg=self.color_accent,
+                                     bg=self.bg_panel, bd=1, relief="solid")
+        tuning_frame.grid(row=4, column=0, columnspan=3, sticky="we", pady=(12, 0))
+        tuning_frame.grid_columnconfigure(0, weight=1)
+        tuning_frame.grid_columnconfigure(1, weight=1)
+
+        self.steps_var = tk.StringVar()
+        self.cfg_var = tk.StringVar()
+        self.sampler_var = tk.StringVar()
+        self.scheduler_var = tk.StringVar()
+        self.width_var = tk.StringVar()
+        self.height_var = tk.StringVar()
+        self.concurrency_var = tk.StringVar()
+        self.advanced_var = tk.BooleanVar(value=False)
+        self._tune_rows = {}
+
+        def _tune_field(parent, col, row, label, widget):
+            lbl = tk.Label(parent, text=label, font=("Segoe UI", 8, "bold"),
+                           fg=self.fg_muted, bg=self.bg_panel)
+            lbl.grid(row=row, column=col * 2, sticky="w", padx=(10, 4), pady=(6, 0))
+            widget.grid(row=row, column=col * 2 + 1, sticky="w", padx=(0, 10), pady=(6, 0))
+            self._tune_rows.setdefault(row, []).extend([lbl, widget])
+            return widget
+
+        steps_spin = tk.Spinbox(tuning_frame, from_=1, to=150, width=6, textvariable=self.steps_var,
+                                font=("Segoe UI", 9), bg=self.bg_input, fg=self.fg_light,
+                                insertbackground=self.fg_light, bd=0, highlightthickness=1,
+                                highlightbackground=self.bg_input, highlightcolor=self.color_accent,
+                                buttonbackground=self.bg_input, buttoncursor="hand2")
+        cfg_spin = tk.Spinbox(tuning_frame, from_=0.5, to=30.0, increment=0.5, width=6, textvariable=self.cfg_var,
+                              font=("Segoe UI", 9), bg=self.bg_input, fg=self.fg_light,
+                              insertbackground=self.fg_light, bd=0, highlightthickness=1,
+                              highlightbackground=self.bg_input, highlightcolor=self.color_accent,
+                              buttonbackground=self.bg_input, buttoncursor="hand2")
+        sampler_cb = ttk.Combobox(tuning_frame, textvariable=self.sampler_var, state="readonly", width=14,
+                                  values=["euler", "normal", "dpmpp_2m", "dpmpp_2m_sde", "dpmpp_sde", "lms", "sde", "heun", "ddim"],
+                                  font=("Segoe UI", 9), style="Custom.TCombobox")
+        scheduler_cb = ttk.Combobox(tuning_frame, textvariable=self.scheduler_var, state="readonly", width=14,
+                                    values=["karras", "normal", "simple", "ddim_uniform", "sgm_uniform", "beta"],
+                                    font=("Segoe UI", 9), style="Custom.TCombobox")
+        width_spin = tk.Spinbox(tuning_frame, from_=512, to=2048, increment=64, width=6, textvariable=self.width_var,
+                                font=("Segoe UI", 9), bg=self.bg_input, fg=self.fg_light,
+                                insertbackground=self.fg_light, bd=0, highlightthickness=1,
+                                highlightbackground=self.bg_input, highlightcolor=self.color_accent,
+                                buttonbackground=self.bg_input, buttoncursor="hand2")
+        height_spin = tk.Spinbox(tuning_frame, from_=512, to=2048, increment=64, width=6, textvariable=self.height_var,
+                                 font=("Segoe UI", 9), bg=self.bg_input, fg=self.fg_light,
+                                 insertbackground=self.fg_light, bd=0, highlightthickness=1,
+                                 highlightbackground=self.bg_input, highlightcolor=self.color_accent,
+                                 buttonbackground=self.bg_input, buttoncursor="hand2")
+        concurrency_spin = tk.Spinbox(tuning_frame, from_=1, to=8, width=6, textvariable=self.concurrency_var,
+                                      font=("Segoe UI", 9), bg=self.bg_input, fg=self.fg_light,
+                                      insertbackground=self.fg_light, bd=0, highlightthickness=1,
+                                      highlightbackground=self.bg_input, highlightcolor=self.color_accent,
+                                      buttonbackground=self.bg_input, buttoncursor="hand2")
+
+        _tune_field(tuning_frame, 0, 0, "Steps (1-150):", steps_spin)
+        _tune_field(tuning_frame, 1, 0, "CFG (0.5-30):", cfg_spin)
+        _tune_field(tuning_frame, 0, 1, "Sampler:", sampler_cb)
+        _tune_field(tuning_frame, 1, 1, "Scheduler:", scheduler_cb)
+        _tune_field(tuning_frame, 0, 2, "Width (px):", width_spin)
+        _tune_field(tuning_frame, 1, 2, "Height (px):", height_spin)
+        _tune_field(tuning_frame, 0, 3, "Concurrency (1-8):", concurrency_spin)
+        tk.Label(tuning_frame, text="", font=("Segoe UI", 9),
+                 fg=self.fg_muted, bg=self.bg_panel).grid(row=1, column=1, sticky="w")
+
+        for w in (steps_spin, cfg_spin, width_spin, height_spin, concurrency_spin):
+            w.bind("<KeyRelease>", lambda e: self._save_settings())
+            w.bind("<<Increment>>", lambda e: self._save_settings())
+            w.bind("<<Decrement>>", lambda e: self._save_settings())
+        for cb in (sampler_cb, scheduler_cb):
+            cb.bind("<<ComboboxSelected>>", lambda e: self._save_settings())
+
+        self.advanced_chk = tk.Checkbutton(
+            tuning_frame, text="Show advanced settings (steps, CFG, sampler, concurrency)",
+            variable=self.advanced_var, command=self._toggle_advanced,
+            bg=self.bg_panel, fg=self.fg_muted, selectcolor=self.bg_input,
+            activebackground=self.bg_panel, activeforeground=self.fg_light,
+            font=("Segoe UI", 8))
+        self.advanced_chk.grid(row=4, column=0, columnspan=2, sticky="w",
+                               padx=10, pady=(4, 0))
+        # Start in casual mode: hide the technical rows (steps/CFG, sampler/
+        # scheduler, concurrency) and keep only width & height visible.
+        self._apply_advanced(False)
 
         # Status and Controls Row
         control_status_frame = tk.Frame(main_container, bg=self.bg_dark)
@@ -243,13 +343,54 @@ class FMGeneratorUI:
             self.graphics_path_var.set(dir_path)
             self._save_settings()
 
+    def _tuning_values(self):
+        def _float(var):
+            try:
+                return float(var.get())
+            except (ValueError, tk.TclError):
+                return None
+        steps = _float(self.steps_var)
+        cfg = _float(self.cfg_var)
+        width = _float(self.width_var)
+        height = _float(self.height_var)
+        concurrency = _float(self.concurrency_var)
+        return {
+            "comfyui_steps": int(steps) if steps is not None else None,
+            "comfyui_cfg": cfg,
+            "comfyui_sampler": self.sampler_var.get().strip() or None,
+            "comfyui_scheduler": self.scheduler_var.get().strip() or None,
+            "comfyui_width": int(width) if width is not None else None,
+            "comfyui_height": int(height) if height is not None else None,
+            "concurrency_limit": int(concurrency) if concurrency is not None else None,
+            "show_advanced_settings": self.advanced_var.get(),
+        }
+
+    def _apply_advanced(self, show):
+        """Shows/hides the technical tuning rows without saving anything."""
+        for row in (0, 1, 3):  # steps/CFG, sampler/scheduler, concurrency
+            for w in self._tune_rows.get(row, []):
+                if show:
+                    w.grid()
+                else:
+                    w.grid_remove()
+
+    def _toggle_advanced(self):
+        self._apply_advanced(self.advanced_var.get())
+        self._save_settings()
+
+    def set_provider_status(self, text, color=None):
+        """Thread-safe status text next to the Test Connection button."""
+        self.root.after(0, lambda: self.provider_status_lbl.configure(
+            text=text, fg=color or self.fg_muted))
+
     def _save_settings(self):
         self.save_config_callback(
             self.watch_path_var.get(),
             self.graphics_path_var.get(),
             self.auto_reload_var.get(),
             self.get_provider(),
-            self.comfy_url_var.get().strip()
+            self.comfy_url_var.get().strip(),
+            self._tuning_values()
         )
 
     def get_provider(self):
@@ -263,6 +404,82 @@ class FMGeneratorUI:
         self.comfy_url_entry.configure(state=state)
         self.provider_status_lbl.configure(text="")
         self._save_settings()
+
+    def _open_maintenance(self):
+        if self.maintenance_callback:
+            self.maintenance_callback()
+        else:
+            self.log("[Info] Maintenance is only available in the packaged app.")
+
+    def _open_face_style(self):
+        if not self.face_style_callback:
+            self.log("[Info] Face style editor is not available in this build.")
+            return
+        data = self.face_style_callback("get")
+        if not data:
+            return
+        positive, negative, default_pos, default_neg = data
+
+        win = tk.Toplevel(self.root)
+        win.title("Face Style & Prompt Editor")
+        win.configure(bg=self.bg_dark)
+        win.geometry("700x580")
+        win.minsize(620, 520)
+
+        tk.Label(win, text="Face Style (positive prompt)", font=("Segoe UI", 10, "bold"),
+                 fg=self.fg_light, bg=self.bg_dark).pack(anchor="w", padx=20, pady=(16, 4))
+        tk.Label(win, text="This text describes every player photo. [AGE], [NATIONALITY] and "
+                           "[PERSONALITY] are filled in automatically.",
+                 font=("Segoe UI", 8), fg=self.fg_muted, bg=self.bg_dark).pack(anchor="w", padx=20, pady=(0, 6))
+        pos_text = tk.Text(win, height=8, wrap="word", font=("Segoe UI", 9),
+                           bg=self.bg_input, fg=self.fg_light, insertbackground=self.fg_light,
+                           bd=0, highlightthickness=1, highlightbackground=self.bg_input,
+                           highlightcolor=self.color_accent, padx=8, pady=6)
+        pos_text.pack(fill="x", padx=20)
+        pos_text.insert("1.0", positive)
+
+        tk.Label(win, text="Negative prompt (things to avoid)", font=("Segoe UI", 10, "bold"),
+                 fg=self.fg_light, bg=self.bg_dark).pack(anchor="w", padx=20, pady=(14, 4))
+        tk.Label(win, text="Everything listed here is discouraged: bad backgrounds, logos, "
+                           "AI-looking skin, wrong poses…",
+                 font=("Segoe UI", 8), fg=self.fg_muted, bg=self.bg_dark).pack(anchor="w", padx=20, pady=(0, 6))
+        neg_text = tk.Text(win, height=7, wrap="word", font=("Segoe UI", 9),
+                           bg=self.bg_input, fg=self.fg_light, insertbackground=self.fg_light,
+                           bd=0, highlightthickness=1, highlightbackground=self.bg_input,
+                           highlightcolor=self.color_accent, padx=8, pady=6)
+        neg_text.pack(fill="x", padx=20)
+        neg_text.insert("1.0", negative)
+
+        tk.Label(win, text="Tip: players under 20 are automatically described as teenagers with "
+                           "smooth, youthful features — no need to add that yourself.",
+                 font=("Segoe UI", 8), fg=self.color_warning, bg=self.bg_dark).pack(anchor="w", padx=20, pady=(10, 0))
+
+        def _save():
+            p = pos_text.get("1.0", "end-1c").strip()
+            n = neg_text.get("1.0", "end-1c").strip()
+            if not p:
+                messagebox.showwarning("Empty style", "The positive prompt cannot be empty.")
+                return
+            self.face_style_callback("save", p, n)
+            win.destroy()
+
+        def _reset():
+            pos_text.delete("1.0", "end")
+            pos_text.insert("1.0", default_pos)
+            neg_text.delete("1.0", "end")
+            neg_text.insert("1.0", default_neg)
+
+        btn_row = tk.Frame(win, bg=self.bg_dark)
+        btn_row.pack(fill="x", padx=20, pady=16)
+        tk.Button(btn_row, text="Save & Close", font=("Segoe UI", 10, "bold"), bg=self.color_accent,
+                  fg=self.fg_light, activebackground="#5848c2", activeforeground=self.fg_light,
+                  bd=0, padx=18, pady=6, command=_save).pack(side="left")
+        tk.Button(btn_row, text="Reset to Defaults", font=("Segoe UI", 9, "bold"), bg=self.bg_input,
+                  fg=self.fg_light, activebackground="#3a3a44", activeforeground=self.fg_light,
+                  bd=0, padx=14, pady=6, command=_reset).pack(side="left", padx=(10, 0))
+        tk.Button(btn_row, text="Cancel", font=("Segoe UI", 9), bg=self.bg_input,
+                  fg=self.fg_muted, activebackground="#3a3a44", activeforeground=self.fg_light,
+                  bd=0, padx=14, pady=6, command=win.destroy).pack(side="right")
 
     def _check_provider(self):
         if not self.check_provider_callback:
@@ -283,7 +500,6 @@ class FMGeneratorUI:
             self.log(f"[Error] Provider check failed: {e}")
         finally:
             self.root.after(0, lambda: self.check_btn.configure(state="normal"))
-
     def _toggle_watcher(self):
         if self.watcher_running:
             self.stop_callback()
@@ -358,7 +574,11 @@ class FMGeneratorUI:
             self.progress_lbl.configure(text=text if text else "Ready")
 
     # Load config file settings into UI variables
-    def load_config(self, watch_dir, graphics_dir, auto_reload, provider="comfyui", comfyui_base_url="http://127.0.0.1:8188"):
+    def load_config(self, watch_dir, graphics_dir, auto_reload, provider="comfyui",
+                    comfyui_base_url="http://127.0.0.1:8188",
+                    steps=25, cfg=6.0, sampler="euler", scheduler="karras",
+                    width=896, height=1152, concurrency_limit=1,
+                    show_advanced=False):
         self.watch_path_var.set(watch_dir)
         self.graphics_path_var.set(graphics_dir)
         self.auto_reload_var.set(auto_reload)
@@ -367,4 +587,13 @@ class FMGeneratorUI:
         self.comfy_url_var.set(comfyui_base_url)
         is_comfy = (provider in (None, "", "comfyui"))
         self.comfy_url_entry.configure(state="normal" if is_comfy else "disabled")
+        self.steps_var.set(steps)
+        self.cfg_var.set(cfg)
+        self.sampler_var.set(sampler)
+        self.scheduler_var.set(scheduler)
+        self.width_var.set(width)
+        self.height_var.set(height)
+        self.concurrency_var.set(concurrency_limit)
+        self.advanced_var.set(bool(show_advanced))
+        self._apply_advanced(bool(show_advanced))
         self.log("[Info] Settings loaded successfully.")
