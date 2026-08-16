@@ -514,13 +514,30 @@ class SetupWizard:
                 if os.path.exists(checkpoint_dest()):
                     self._log("Existing model file is truncated — re-downloading.")
                     os.unlink(checkpoint_dest())
-                ok, dest = download_file(
-                    CHECKPOINT_URL, checkpoint_dest(),
-                    progress_cb=self._model_progress,
-                    cancel_event=self.cancel_event)
-                if not ok:
-                    self.status_lbl.config(text="Setup cancelled.", fg=self.color_warning)
-                    return
+                # Older builds placed the model next to the install root; if we
+                # find a good file there, move it into ComfyUI's models folder
+                # instead of forcing a ~7 GB re-download.
+                old_dest = os.path.join(install_root(), CHECKPOINT_FILENAME)
+                if os.path.exists(old_dest):
+                    try:
+                        if os.path.getsize(old_dest) >= MIN_CHECKPOINT_BYTES:
+                            os.makedirs(os.path.dirname(checkpoint_dest()),
+                                        exist_ok=True)
+                            os.replace(old_dest, checkpoint_dest())
+                            self._log("Moved existing model into ComfyUI's "
+                                      "checkpoints folder.")
+                        else:
+                            os.unlink(old_dest)
+                    except OSError as e:
+                        self._log(f"Could not move old model file ({e}).")
+                if not _checkpoint_ok():
+                    ok, dest = download_file(
+                        CHECKPOINT_URL, checkpoint_dest(),
+                        progress_cb=self._model_progress,
+                        cancel_event=self.cancel_event)
+                    if not ok:
+                        self.status_lbl.config(text="Setup cancelled.", fg=self.color_warning)
+                        return
             self.root.after(0, lambda: self._set_line(
                 self.line3, "3. Realism model installed ✓", self.color_success))
 
