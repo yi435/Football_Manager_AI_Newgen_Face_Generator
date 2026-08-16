@@ -113,8 +113,10 @@ class FMGeneratorApp:
                     print("[Warning] ComfyUI launcher not found — will not start.")
                 else:
                     # Run the .bat hidden (no console window flashes up) and
-                    # detached, so it keeps running on its own.
-                    subprocess.Popen([launcher], cwd=install_dir, shell=True,
+                    # detached, so it keeps running on its own. Explicitly
+                    # invoke cmd /c so the batch path is never parsed as a
+                    # shell command line (no injection via a tampered config).
+                    subprocess.Popen(["cmd", "/c", launcher], cwd=install_dir,
                                      creationflags=subprocess.CREATE_NO_WINDOW)
                     print(f"[Info] Auto-started embedded ComfyUI from {launcher}")
         except Exception as e:

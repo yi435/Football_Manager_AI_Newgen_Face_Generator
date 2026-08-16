@@ -26,10 +26,9 @@ a = Analysis(
     hiddenimports=[
         "aiohttp",
         "aiohttp.web",
+        "certifi",
         "watchdog.observers",
         "striprtf.striprtf",
-        "requests",
-        "PIL.Image",
         "src.app",
         "src.ui",
         "src.watcher",

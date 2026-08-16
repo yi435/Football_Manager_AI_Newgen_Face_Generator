@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import ssl
 import shutil
 import threading
 import subprocess
@@ -9,6 +10,12 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 import aiohttp
+try:
+    import certifi
+    _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+except Exception:
+    # certifi not installed: fall back to the system CA store. Both verify TLS.
+    _SSL_CTX = ssl.create_default_context()
 
 # ---------------------------------------------------------------------------
 # Locations & download sources
@@ -125,7 +132,7 @@ async def _download_file_async(url, dest, progress_cb=None, cancel_event=None):
         while True:
             try:
                 async with session.get(url, headers=headers, timeout=None,
-                                        ssl=False) as resp:
+                                        ssl=_SSL_CTX) as resp:
                     if resp.status not in (200, 206):
                         raise RuntimeError(f"HTTP {resp.status} downloading {url}")
 

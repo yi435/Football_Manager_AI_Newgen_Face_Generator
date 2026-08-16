@@ -1,5 +1,5 @@
 watchdog>=3.0.0
-requests>=2.31.0
 striprtf>=0.0.26
 aiohttp>=3.9.0
+certifi>=2023.11.17
 pillow>=10.0.0
