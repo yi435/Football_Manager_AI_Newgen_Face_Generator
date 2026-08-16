@@ -213,7 +213,7 @@ class FMGeneratorUI:
                               highlightbackground=self.bg_input, highlightcolor=self.color_accent,
                               buttonbackground=self.bg_input, buttoncursor="hand2")
         sampler_cb = ttk.Combobox(tuning_frame, textvariable=self.sampler_var, state="readonly", width=14,
-                                  values=["euler_a", "euler", "dpmpp_2m", "dpmpp_2m_sde", "dpmpp_sde", "lms", "sde", "heun", "ddim"],
+                                  values=["euler", "normal", "dpmpp_2m", "dpmpp_2m_sde", "dpmpp_sde", "lms", "sde", "heun", "ddim"],
                                   font=("Segoe UI", 9), style="Custom.TCombobox")
         scheduler_cb = ttk.Combobox(tuning_frame, textvariable=self.scheduler_var, state="readonly", width=14,
                                     values=["karras", "normal", "simple", "ddim_uniform", "sgm_uniform", "beta"],
@@ -465,7 +465,7 @@ class FMGeneratorUI:
     # Load config file settings into UI variables
     def load_config(self, watch_dir, graphics_dir, auto_reload, provider="comfyui",
                     comfyui_base_url="http://127.0.0.1:8188",
-                    steps=25, cfg=6.0, sampler="euler_a", scheduler="karras",
+                    steps=25, cfg=6.0, sampler="euler", scheduler="karras",
                     width=896, height=1152, concurrency_limit=1):
         self.watch_path_var.set(watch_dir)
         self.graphics_path_var.set(graphics_dir)

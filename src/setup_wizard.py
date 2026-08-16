@@ -25,6 +25,15 @@ COMFYUI_URL = (
     "ComfyUI_windows_portable_nvidia.7z"
 )
 COMFYUI_DIR_NAME = "ComfyUI_windows_portable"
+# Standalone 7-Zip console binary used to extract the ComfyUI portable
+# archive. It is the only reliable way to handle the archive's BCJ2 solid
+# compression (which py7zr cannot decode). Downloaded silently to the install
+# root the first time it is needed.
+SEVENZA_FILENAME = "7za.exe"
+SEVENZA_URL = (
+    "https://raw.githubusercontent.com/develar/7zip-bin/master/"
+    "win/x64/7za.exe"
+)
 REQUIRED_DISK_GB = 25
 MIN_CHECKPOINT_BYTES = 100 * 1024 * 1024
 
@@ -54,7 +63,12 @@ def comfyui_root():
 
 
 def checkpoint_dest():
-    return os.path.join(install_root(), CHECKPOINT_FILENAME)
+    """
+    Where the checkpoint must live so ComfyUI's CheckpointLoaderSimple can
+    actually load it: inside the embedded engine's models/checkpoints folder.
+    """
+    return os.path.join(comfyui_root(), "ComfyUI", "models", "checkpoints",
+                        CHECKPOINT_FILENAME)
 
 
 def config_path():
@@ -154,16 +168,45 @@ def download_file(url, dest, progress_cb=None, cancel_event=None):
 
 
 def extract_7z(archive_path, dest_dir):
-    """Extracts a .7z archive using py7zr (bundled dependency)."""
-    try:
-        import py7zr
-    except ImportError:
-        raise RuntimeError(
-            "py7zr is not available. Install it via 'pip install py7zr'."
-        )
+    """
+    Extracts archive_path into dest_dir using the standalone 7-Zip console
+    binary (7za.exe). The official ComfyUI portable archive uses BCJ2 solid
+    compression, which py7zr cannot decode, so we fetch 7za.exe once and run
+    it via subprocess instead of requiring the user to install 7-Zip.
+    """
+    import urllib.request
+
     os.makedirs(dest_dir, exist_ok=True)
-    with py7zr.SevenZipFile(archive_path, "r") as z:
-        z.extractall(dest_dir)
+
+    sevenza = os.path.join(install_root(), SEVENZA_FILENAME)
+    if not os.path.exists(sevenza):
+        try:
+            urllib.request.urlretrieve(SEVENZA_URL, sevenza)
+        except Exception as e:
+            raise RuntimeError(
+                f"Could not download the 7-Zip extractor (needed to unpack "
+                f"ComfyUI). Check your internet connection and retry. "
+                f"({type(e).__name__}: {e})")
+    if not os.path.exists(sevenza) or os.path.getsize(sevenza) < 512 * 1024:
+        raise RuntimeError("7-Zip extractor download failed — it is missing "
+                           "or incomplete. Please retry setup.")
+
+    try:
+        proc = subprocess.run(
+            [sevenza, "x", archive_path, f"-o{dest_dir}", "-y", "-aoa"],
+            capture_output=True, text=True)
+    except Exception as e:
+        raise RuntimeError(f"Failed to run the 7-Zip extractor: {e}")
+    if proc.returncode != 0:
+        tail = (proc.stderr or proc.stdout or "").strip().splitlines()
+        detail = " | ".join(tail[-3:]) if tail else f"exit code {proc.returncode}"
+        raise RuntimeError(f"Extracting ComfyUI failed ({detail}). "
+                           "Please retry setup.")
+
+    try:
+        os.unlink(sevenza)
+    except OSError:
+        pass
 
 
 def is_installed():
@@ -385,7 +428,8 @@ class SetupWizard:
         try:
             uninstall_all()
         except Exception as e:
-            self.root.after(0, lambda: self._fail(f"Uninstall error: {e}"))
+            msg = f"Uninstall error: {e}"
+            self.root.after(0, lambda m=msg: self._fail(m))
             return
         self.root.after(0, self._uninstall_done)
 
@@ -416,6 +460,10 @@ class SetupWizard:
         """Runs the whole workflow off the UI thread."""
         title_color = self.color_success
         try:
+            # Create the install folder first so the disk space check can
+            # measure the real target volume (otherwise it reports 0.0 GB).
+            os.makedirs(install_root(), exist_ok=True)
+
             # 1. System checks
             self.root.after(0, lambda: self._set_line(
                 self.line1, "1. Checking your system…", self.color_accent))
@@ -433,8 +481,6 @@ class SetupWizard:
             self.root.after(0, lambda: self._set_line(
                 self.line1, "1. System check passed — ready to install",
                 self.color_success))
-
-            os.makedirs(install_root(), exist_ok=True)
 
             # 2. ComfyUI portable
             self.root.after(0, lambda: self._set_line(
@@ -489,7 +535,8 @@ class SetupWizard:
 
             self.root.after(0, self._finish)
         except Exception as e:
-            self.root.after(0, lambda: self._fail(str(e)))
+            msg = f"{type(e).__name__}: {e}"
+            self.root.after(0, lambda m=msg: self._fail(m))
 
     # -- step callbacks -----------------------------------------------------
     def _comfy_progress(self, downloaded, total, speed):
@@ -546,7 +593,7 @@ class SetupWizard:
             "comfyui_negative_prompt": "deformed, blurry, out of focus, low quality, bad anatomy, watermark, text, logo, cartoon, illustration, 3d render, painting, extra fingers, mutated hands, extra limbs, ugly, distorted face, oversaturated",
             "comfyui_steps": 25,
             "comfyui_cfg": 6.0,
-            "comfyui_sampler": "euler_a",
+            "comfyui_sampler": "euler",
             "comfyui_scheduler": "karras",
             "comfyui_width": 896,
             "comfyui_height": 1152,

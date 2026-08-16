@@ -3,4 +3,3 @@ requests>=2.31.0
 striprtf>=0.0.26
 aiohttp>=3.9.0
 pillow>=10.0.0
-py7zr>=0.20.0

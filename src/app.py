@@ -24,7 +24,7 @@ DEFAULT_CONFIG = {
     "comfyui_negative_prompt": "deformed, blurry, out of focus, low quality, bad anatomy, watermark, text, logo, cartoon, illustration, 3d render, painting, extra fingers, mutated hands, extra limbs, ugly, distorted face, oversaturated",
     "comfyui_steps": 25,
     "comfyui_cfg": 6.0,
-    "comfyui_sampler": "euler_a",
+    "comfyui_sampler": "euler",
     "comfyui_scheduler": "karras",
     "comfyui_width": 896,
     "comfyui_height": 1152
@@ -68,7 +68,7 @@ class FMGeneratorApp:
             self.config.get("comfyui_base_url", "http://127.0.0.1:8188"),
             self.config.get("comfyui_steps", 25),
             self.config.get("comfyui_cfg", 6.0),
-            self.config.get("comfyui_sampler", "euler_a"),
+            self.config.get("comfyui_sampler", "euler"),
             self.config.get("comfyui_scheduler", "karras"),
             self.config.get("comfyui_width", 896),
             self.config.get("comfyui_height", 1152),
@@ -97,7 +97,8 @@ class FMGeneratorApp:
                 base = self.config.get("comfyui_base_url", "http://127.0.0.1:8188")
                 async with aiohttp.ClientSession() as s:
                     try:
-                        async with s.get(f"{base}/system_stats", timeout=3, ssl=False) as r:
+                        async with s.get(f"{base}/system_stats", timeout=3,
+                                         ssl=False) as r:
                             return r.status == 200
                     except Exception:
                         return False
@@ -106,13 +107,25 @@ class FMGeneratorApp:
             launcher = os.path.join(install_dir, "run_nvidia_gpu.bat")
             if not os.path.exists(launcher):
                 launcher = os.path.join(install_dir, "run_cpu.bat")
-            if os.path.exists(launcher):
-                subprocess.Popen(
-                    ["cmd", "/c", "start", "", "cmd", "/c", launcher],
-                    shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
-                print(f"[Info] Auto-started embedded ComfyUI from {launcher}")
+            if not os.path.exists(launcher):
+                print("[Warning] ComfyUI launcher not found — will not start.")
+                return
+            # Run the .bat hidden (no console window flashes up) and detached,
+            # so it keeps running even if the window manager is busy.
+            subprocess.Popen([launcher], cwd=install_dir, shell=True,
+                             creationflags=subprocess.CREATE_NO_WINDOW)
+            print(f"[Info] Auto-started embedded ComfyUI from {launcher}")
         except Exception as e:
             print(f"[Warning] Could not auto-start ComfyUI: {e}")
+
+        # Background: report once the server actually answers, since ComfyUI
+        # can take a couple of minutes to boot on first launch.
+        def _monitor_ready():
+            from src.generator import wait_for_comfyui
+            base = self.config.get("comfyui_base_url", "http://127.0.0.1:8188")
+            if asyncio.run(wait_for_comfyui(base, timeout=180)):
+                self.ui.log("[Info] ComfyUI is ready — you can generate now.")
+        threading.Thread(target=_monitor_ready, daemon=True).start()
 
     def _load_config(self):
         data = None
@@ -367,7 +380,7 @@ class FMGeneratorApp:
                     negative_prompt=self.config.get("comfyui_negative_prompt", ""),
                     steps=self.config.get("comfyui_steps", 25),
                     cfg=self.config.get("comfyui_cfg", 6.0),
-                    sampler=self.config.get("comfyui_sampler", "euler_a"),
+                    sampler=self.config.get("comfyui_sampler", "euler"),
                     scheduler=self.config.get("comfyui_scheduler", "karras"),
                     width=self.config.get("comfyui_width", 896),
                     height=self.config.get("comfyui_height", 1152)

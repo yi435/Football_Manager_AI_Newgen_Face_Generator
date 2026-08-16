@@ -10,7 +10,7 @@
   "comfyui_negative_prompt": "deformed, blurry, out of focus, low quality, bad anatomy, watermark, text, logo, cartoon, illustration, 3d render, painting, extra fingers, mutated hands, extra limbs, ugly, distorted face, oversaturated",
   "comfyui_steps": 25,
   "comfyui_cfg": 6.0,
-  "comfyui_sampler": "euler_a",
+  "comfyui_sampler": "euler",
   "comfyui_scheduler": "karras",
   "comfyui_width": 896,
   "comfyui_height": 1152

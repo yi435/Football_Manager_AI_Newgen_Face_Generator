@@ -30,7 +30,6 @@ a = Analysis(
         "striprtf.striprtf",
         "requests",
         "PIL.Image",
-        "py7zr",
         "src.app",
         "src.ui",
         "src.watcher",

@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 import asyncio
+import time
 import urllib.parse
 import aiohttp
 
@@ -17,11 +18,41 @@ PROVIDER_NAMES = {
 }
 
 
+async def wait_for_comfyui(base_url, timeout=120, session=None):
+    """
+    Polls the ComfyUI /system_stats endpoint until it answers HTTP 200 or the
+    timeout expires. ComfyUI can take a minute or two to boot (loading torch +
+    the model), so generation should wait for it instead of failing instantly.
+    """
+    base_url = base_url.rstrip("/")
+
+    async def _up(s):
+        try:
+            async with s.get(f"{base_url}/system_stats", timeout=3, ssl=False) as r:
+                return r.status == 200
+        except Exception:
+            return False
+
+    deadline = time.monotonic() + timeout
+    if session is None:
+        async with aiohttp.ClientSession() as s:
+            while time.monotonic() < deadline:
+                if await _up(s):
+                    return True
+                await asyncio.sleep(2)
+        return False
+    while time.monotonic() < deadline:
+        if await _up(session):
+            return True
+        await asyncio.sleep(2)
+    return False
+
+
 class FaceGenerator:
     def __init__(self, graphics_dir, concurrency_limit=1,
                  provider="comfyui", comfyui_base_url="http://127.0.0.1:8188",
                  comfyui_model="", negative_prompt=DEFAULT_NEGATIVE_PROMPT,
-                 steps=25, cfg=6.0, sampler="euler_a", scheduler="karras",
+                 steps=25, cfg=6.0, sampler="euler", scheduler="karras",
                  width=896, height=1152):
         self.graphics_dir = graphics_dir
         self.semaphore = asyncio.Semaphore(max(1, concurrency_limit))
@@ -31,7 +62,7 @@ class FaceGenerator:
         self.negative_prompt = negative_prompt if negative_prompt else DEFAULT_NEGATIVE_PROMPT
         self.steps = int(steps) if steps else 25
         self.cfg = float(cfg) if cfg else 6.0
-        self.sampler = sampler or "euler_a"
+        self.sampler = sampler or "euler"
         self.scheduler = scheduler or "karras"
         self.width = int(width) if width else 896
         self.height = int(height) if height else 1152
@@ -42,11 +73,17 @@ class FaceGenerator:
     def provider_name(self):
         return PROVIDER_NAMES.get(self.provider, self.provider)
 
-    async def check_connection(self):
+    async def check_connection(self, wait_seconds=20):
         """
         Verifies the selected provider is reachable before generating.
+        Gives a cold-starting ComfyUI up to wait_seconds to come online.
         Returns (ok, message) so the UI can log a friendly status.
         """
+        if wait_seconds > 0:
+            if await wait_for_comfyui(self.comfyui_base_url,
+                                      timeout=wait_seconds):
+                return (True, f"ComfyUI server reachable at "
+                              f"{self.comfyui_base_url}")
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(f"{self.comfyui_base_url}/system_stats",
@@ -223,6 +260,14 @@ class FaceGenerator:
 
         self._resolved_checkpoint = None
         async with aiohttp.ClientSession() as session:
+            # Give an auto-started ComfyUI time to boot before submitting work.
+            if not await wait_for_comfyui(self.comfyui_base_url, timeout=180,
+                                          session=session):
+                return [{"uid": p["uid"], "status": "failed",
+                         "error": ("ComfyUI did not start in time. Launch it "
+                                   "manually or restart the app.")}
+                        for p in players_to_generate]
+
             # Resolve which checkpoint to use once for the whole batch
             checkpoint = await self._resolve_checkpoint(session)
 

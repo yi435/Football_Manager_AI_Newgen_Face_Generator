@@ -191,8 +191,8 @@ The GUI's **"Test Connection"** button runs the same pre-flight check the genera
     1.  `setup_wizard_needed()`: true when there is no `config.json` with a valid `comfyui_install_dir`, no install marker, and this is not a source checkout (a `src/` folder beside the entry point counts as dev mode and skips the wizard).
     2.  **System check:** `detect_nvidia_gpu()` (via `nvidia-smi`) and `free_disk_gb()` (~25 GB required). Non-NVIDIA machines get a CPU-mode warning but may continue.
     3.  **ComfyUI portable download** from `Comfy-Org/ComfyUI` releases/latest (`ComfyUI_windows_portable_nvidia.7z`, ~2 GB), streamed by `_download_file_async()`.
-    4.  **Extract** with `py7zr` into `%LOCALAPPDATA%\FM Newgen Generator\ComfyUI_windows_portable\`.
-    5.  **Checkpoint download** — RealVisXL V5.0 fp16 (`RealVisXL_V5.0_fp16.safetensors`, ~7 GB) from Hugging Face, into the same root.
+    4.  **Extract** with the standalone **7-Zip console binary** (`7za.exe`, downloaded silently from GitHub) into `%LOCALAPPDATA%\FM Newgen Generator\ComfyUI_windows_portable\`. The official ComfyUI archive uses BCJ2 solid compression, which `py7zr` cannot decode, so the wizard shells out to `7za.exe` instead.
+    5.  **Checkpoint download** — RealVisXL V5.0 fp16 (`RealVisXL_V5.0_fp16.safetensors`, ~7 GB) from Hugging Face, placed directly into `ComfyUI_windows_portable\ComfyUI\models\checkpoints\` so ComfyUI's `CheckpointLoaderSimple` can load it.
     6.  **Write `config.json`** next to the EXE with correct defaults (watch/graphics dirs under the user's Documents, `comfyui_model` set, size 896×1152).
     7.  **Finish** → app launches; `app.auto_start_comfyui()` boots the embedded server if it isn't already reachable.
 *   **Resume safety:** downloads write to a `.part` file and resume via HTTP `Range`; a failed transfer can be re-run without re-downloading the whole file.
