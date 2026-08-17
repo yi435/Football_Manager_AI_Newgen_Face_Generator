@@ -169,9 +169,11 @@ class FMHTMLParser(HTMLParser):
 
 class PlayerParser:
     @staticmethod
-    def parse_file(filepath):
+    def parse_file(filepath, uid_prefix="2"):
         """
-        Parses an exported RTF or HTML file from FM and returns a list of player dicts.
+        Parses an exported RTF, HTML, CSV or text file from FM and returns a
+        list of player dicts. ``uid_prefix`` filters which player IDs are treated
+        as newgens (FM24 IDs start with "2"); pass "" to accept every numeric ID.
         """
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Export file not found: {filepath}")
@@ -179,92 +181,103 @@ class PlayerParser:
         _, ext = os.path.splitext(filepath.lower())
         
         if ext == ".rtf":
-            return PlayerParser._parse_rtf(filepath)
+            return PlayerParser._parse_rtf(filepath, uid_prefix)
         elif ext in [".html", ".htm"]:
-            return PlayerParser._parse_html(filepath)
+            return PlayerParser._parse_html(filepath, uid_prefix)
+        elif ext == ".csv":
+            return PlayerParser._parse_csv(filepath, uid_prefix)
         else:
             # Fallback to plain text TSV parsing
-            return PlayerParser._parse_text(filepath)
+            return PlayerParser._parse_text(filepath, uid_prefix)
 
     @staticmethod
-    def _parse_rtf(filepath):
+    def _parse_rtf(filepath, uid_prefix="2"):
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read()
         plain_text = rtf_to_text(content)
-        return PlayerParser._parse_text_content(plain_text)
+        return PlayerParser._parse_text_content(plain_text, uid_prefix)
 
     @staticmethod
-    def _parse_html(filepath):
+    def _parse_html(filepath, uid_prefix="2"):
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
             html_content = f.read()
         
         parser = FMHTMLParser()
         parser.feed(html_content)
-        
-        # Standardize headers to lowercase keys
-        headers = [h.lower() for h in parser.headers]
-        players = []
-
-        # Map typical FM column names to standard fields
-        # UID is typically named 'id' or 'unique id'
-        # Nationality is 'nat' or 'nationality' or 'nation'
-        # Second Nat is 'second nationality' or '2nd nat'
-        # Age is 'age'
-        # Personality is 'personality'
-        uid_idx = PlayerParser._find_column_index(headers, ["id", "uid", "unique id"])
-        name_idx = PlayerParser._find_column_index(headers, ["name", "player name"])
-        nat_idx = PlayerParser._find_column_index(headers, ["nat", "nationality", "nation"])
-        sec_nat_idx = PlayerParser._find_column_index(headers, ["2nd nat", "second nationality", "second nat"])
-        age_idx = PlayerParser._find_column_index(headers, ["age"])
-        pers_idx = PlayerParser._find_column_index(headers, ["personality"])
-
-        if uid_idx == -1:
-            raise ValueError("Could not find ID/UID column in exported file. Ensure your FM search view contains the ID column.")
-
-        for row in parser.rows:
-            if len(row) <= uid_idx:
-                continue
-            
-            uid = row[uid_idx].replace("r-", "").strip()
-            # We filter for newgen UIDs only (which start with 200 or are 10 digits starting with 2)
-            if not uid.isdigit() or not uid.startswith("2"):
-                continue
-
-            player = {
-                "uid": uid,
-                "name": row[name_idx] if name_idx != -1 and len(row) > name_idx else "Unknown Newgen",
-                "nat": row[nat_idx] if nat_idx != -1 and len(row) > nat_idx else "",
-                "sec_nat": row[sec_nat_idx] if sec_nat_idx != -1 and len(row) > sec_nat_idx else "",
-                "age": row[age_idx] if age_idx != -1 and len(row) > age_idx else "16",
-                "personality": row[pers_idx] if pers_idx != -1 and len(row) > pers_idx else "Balanced"
-            }
-            players.append(player)
-
-        return players
+        rows = [parser.headers] + parser.rows if parser.headers else parser.rows
+        return PlayerParser._players_from_rows(rows, uid_prefix)
 
     @staticmethod
-    def _parse_text(filepath):
+    def _parse_text(filepath, uid_prefix="2"):
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read()
-        return PlayerParser._parse_text_content(content)
+        return PlayerParser._parse_text_content(content, uid_prefix)
 
     @staticmethod
-    def _parse_text_content(text):
-        rows = PlayerParser._extract_table_rows(text)
+    def _parse_csv(filepath, uid_prefix="2"):
+        """
+        Parses a CSV export. Supports the FM26 Player Export plugin output
+        (semicolon-delimited) as well as comma/tab delimited files. Header names
+        are matched leniently via the same column aliases as other formats.
+        """
+        import csv
+
+        with open(filepath, "rb") as f:
+            raw = f.read()
+
+        text = None
+        for enc in ("utf-8-sig", "utf-8"):
+            try:
+                text = raw.decode(enc)
+                break
+            except UnicodeDecodeError:
+                continue
+        if text is None:
+            # The plugin is known to mis-handle some accented names; fall back.
+            text = raw.decode("latin-1")
+
+        lines = text.splitlines()
+        if not lines:
+            return []
+        header_line = lines[0]
+        delimiter = "\t" if "\t" in header_line else ";"
+        if delimiter != "\t":
+            counts = {d: header_line.count(d) for d in (";", ",", "|")}
+            if max(counts.values(), default=0) > 0:
+                delimiter = max(counts, key=counts.get)
+
+        rows = []
+        for row in csv.reader(lines, delimiter=delimiter):
+            cells = [c.strip() for c in row]
+            if any(cells):
+                rows.append(cells)
+
+        return PlayerParser._players_from_rows(rows, uid_prefix)
+
+    @staticmethod
+    def _players_from_rows(rows, uid_prefix="2"):
+        """
+        Shared conversion of a header-row + data-rows table into player dicts.
+        Only numeric IDs that match the newgen prefix are kept.
+        """
         if not rows:
             return []
 
         headers = [h.lower() for h in rows[0]]
-        
-        uid_idx = PlayerParser._find_column_index(headers, ["id", "uid", "unique id"])
-        name_idx = PlayerParser._find_column_index(headers, ["name", "player name"])
+
+        uid_idx = PlayerParser._find_column_index(headers, ["id", "uid", "unique id", "player id", "fm id"])
+        name_idx = PlayerParser._find_column_index(headers, ["name", "player name", "player"])
         nat_idx = PlayerParser._find_column_index(headers, ["nat", "nationality", "nation"])
         sec_nat_idx = PlayerParser._find_column_index(headers, ["2nd nat", "second nationality", "second nat"])
         age_idx = PlayerParser._find_column_index(headers, ["age"])
         pers_idx = PlayerParser._find_column_index(headers, ["personality"])
 
         if uid_idx == -1:
-            raise ValueError("Could not find ID/UID column in exported file. Ensure your FM search view contains the ID column.")
+            raise ValueError(
+                "Could not find ID/UID column in the exported file. Make sure the "
+                "view used for the export shows the ID column (newgen UIDs start "
+                "with '2')."
+            )
 
         players = []
         for row in rows[1:]:
@@ -272,8 +285,9 @@ class PlayerParser:
                 continue
 
             uid = row[uid_idx].replace("r-", "").strip()
-            # We filter for newgen UIDs only
-            if not uid.isdigit() or not uid.startswith("2"):
+            if not uid.isdigit():
+                continue
+            if uid_prefix and not uid.startswith(uid_prefix):
                 continue
 
             player = {
@@ -287,6 +301,13 @@ class PlayerParser:
             players.append(player)
 
         return players
+
+    @staticmethod
+    def _parse_text_content(text, uid_prefix="2"):
+        rows = PlayerParser._extract_table_rows(text)
+        if not rows:
+            return []
+        return PlayerParser._players_from_rows(rows, uid_prefix)
 
     @staticmethod
     def _extract_table_rows(text):

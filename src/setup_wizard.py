@@ -622,6 +622,7 @@ class SetupWizard:
             "comfyui_width": 896,
             "comfyui_height": 1152,
             "comfyui_install_dir": comfyui_root(),
+            "uid_prefix": "2",
         }
         with open(config_path(), "w", encoding="utf-8") as f:
             json.dump(cfg, f, indent=2)

@@ -28,8 +28,14 @@ DEFAULT_CONFIG = {
     "comfyui_scheduler": "karras",
     "comfyui_width": 896,
     "comfyui_height": 1152,
-    "show_advanced_settings": False
+    "show_advanced_settings": False,
+    "uid_prefix": "2"
 }
+
+
+FMSCOUT_FM26_EXPORT_URL = (
+    "https://www.fmscout.com/a-fm26-player-csv-export.html"
+)
 
 
 def app_root():
@@ -58,7 +64,8 @@ class FMGeneratorApp:
             run_now_callback=self.run_now,
             check_provider_callback=self.check_provider,
             maintenance_callback=self.open_maintenance,
-            face_style_callback=self.open_face_style
+            face_style_callback=self.open_face_style,
+            fm26_callback=self.open_fm26_guide
         )
         
         # Load configuration into UI
@@ -208,6 +215,43 @@ class FMGeneratorApp:
                 self.ui.log(f"[Error] Failed to save face style: {e}")
         return None
 
+    def fm26_documents_dir(self):
+        """
+        Best-effort path to the FM26 documents folder (handles OneDrive
+        redirection). Returns None if it cannot be found.
+        """
+        candidates = [
+            os.path.join(os.path.expanduser("~"), "Documents",
+                         "Sports Interactive", "Football Manager 2026"),
+            os.path.join(os.path.expanduser("~"), "OneDrive", "Documents",
+                         "Sports Interactive", "Football Manager 2026"),
+        ]
+        for c in candidates:
+            if os.path.isdir(c):
+                return c
+        return candidates[0]
+
+    def open_fm26_guide(self, mode):
+        """
+        Backing callback for the "FM26 Setup…" dialog.
+        - mode "page": opens the free export plugin page in the browser.
+        - mode "watch": points the Watch Directory at the plugin's output folder.
+        """
+        if mode == "page":
+            import webbrowser
+            webbrowser.open(FMSCOUT_FM26_EXPORT_URL)
+            self.ui.log("[FM26] Opened the FM26 Player Export plugin page (fmscout.com).")
+            return None
+        if mode == "watch":
+            plugin_out = os.path.join(
+                self.fm26_documents_dir(),
+                "FM26PlayerExport by vinteset")
+            target = plugin_out if os.path.isdir(plugin_out) else self.fm26_documents_dir()
+            self.ui.set_watch_directory(target)
+            self.ui.log(f"[FM26] Watch Directory set to: {target}")
+            return None
+        return None
+
     def check_provider(self):
         """
         Pings the selected provider from a background thread and logs the result.
@@ -303,7 +347,7 @@ class FMGeneratorApp:
             return 0
 
         files = [os.path.join(watch_dir, f) for f in os.listdir(watch_dir) 
-                 if f.lower().endswith(('.rtf', '.html', '.htm', '.txt'))]
+                 if f.lower().endswith(('.rtf', '.html', '.htm', '.txt', '.csv'))]
         
         if not files:
             self.ui.log("[Info] No export files found to process.")
@@ -326,8 +370,10 @@ class FMGeneratorApp:
             self.ui.update_progress(0, 0, "Reading export file...")
             
             try:
-                # 1. Parse player list
-                players = PlayerParser.parse_file(filepath)
+                # 1. Parse player list (uid_prefix defaults to FM24 newgens "2";
+                #    set it in config.json if a future edition changes the format)
+                players = PlayerParser.parse_file(
+                    filepath, uid_prefix=self.config.get("uid_prefix", "2"))
                 if not players:
                     self.ui.log(f"[Warning] No valid newgen players found in {os.path.basename(filepath)}.")
                     self.ui.update_progress(0, 0, "Ready")

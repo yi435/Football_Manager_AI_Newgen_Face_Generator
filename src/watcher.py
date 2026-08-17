@@ -51,7 +51,7 @@ class ExportWatcher:
 
         event_handler = ExportFileHandler(
             callback=self.callback,
-            patterns=["*.rtf", "*.html", "*.htm", "*.txt"]
+            patterns=["*.rtf", "*.html", "*.htm", "*.txt", "*.csv"]
         )
         
         self.observer = Observer()

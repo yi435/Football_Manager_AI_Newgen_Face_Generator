@@ -7,7 +7,7 @@ from tkinter import filedialog, ttk, messagebox
 from tkinter.scrolledtext import ScrolledText
 
 class FMGeneratorUI:
-    def __init__(self, root, start_callback, stop_callback, save_config_callback, run_now_callback, check_provider_callback=None, maintenance_callback=None, face_style_callback=None):
+    def __init__(self, root, start_callback, stop_callback, save_config_callback, run_now_callback, check_provider_callback=None, maintenance_callback=None, face_style_callback=None, fm26_callback=None):
         self.root = root
         self.start_callback = start_callback
         self.stop_callback = stop_callback
@@ -16,6 +16,7 @@ class FMGeneratorUI:
         self.check_provider_callback = check_provider_callback
         self.maintenance_callback = maintenance_callback
         self.face_style_callback = face_style_callback
+        self.fm26_callback = fm26_callback
         
         # Window settings
         self.root.title("FM AI Newgen Generator")
@@ -171,6 +172,12 @@ class FMGeneratorUI:
                                    activeforeground=self.fg_light, bd=0, padx=10, pady=2,
                                    command=self._open_face_style)
         self.style_btn.pack(side="left", padx=(0, 15))
+
+        self.fm26_btn = tk.Button(provider_row, text="FM26 Setup…", font=("Segoe UI", 9, "bold"),
+                                  bg=self.bg_input, fg=self.color_warning, activebackground="#3a3a44",
+                                  activeforeground=self.color_warning, bd=0, padx=10, pady=2,
+                                  command=self._open_fm26_setup)
+        self.fm26_btn.pack(side="left", padx=(0, 15))
 
         self.comfy_url_lbl = tk.Label(provider_row, text="ComfyUI URL:", font=("Segoe UI", 9, "bold"),
                                       fg=self.fg_light, bg=self.bg_panel)
@@ -478,6 +485,61 @@ class FMGeneratorUI:
                   fg=self.fg_light, activebackground="#3a3a44", activeforeground=self.fg_light,
                   bd=0, padx=14, pady=6, command=_reset).pack(side="left", padx=(10, 0))
         tk.Button(btn_row, text="Cancel", font=("Segoe UI", 9), bg=self.bg_input,
+                  fg=self.fg_muted, activebackground="#3a3a44", activeforeground=self.fg_light,
+                  bd=0, padx=14, pady=6, command=win.destroy).pack(side="right")
+
+    def set_watch_directory(self, path):
+        """Sets the Watch Directory field (used by the FM26 helper)."""
+        self.watch_path_var.set(path)
+        self._save_settings()
+
+    def _open_fm26_setup(self):
+        if not self.fm26_callback:
+            self.log("[Info] FM26 setup helper is not available in this build.")
+            return
+
+        win = tk.Toplevel(self.root)
+        win.title("FM26 Support (free export plugin)")
+        win.configure(bg=self.bg_dark)
+        win.geometry("660x480")
+        win.minsize(600, 440)
+
+        tk.Label(win, text="Playing Football Manager 2026?", font=("Segoe UI", 11, "bold"),
+                 fg=self.fg_light, bg=self.bg_dark).pack(anchor="w", padx=20, pady=(16, 4))
+        tk.Label(win, text="FM26 removed the classic 'To text file' export. The free "
+                           "FM26 Player Export plugin (by vinteset) restores it — the app "
+                           "reads its CSV/HTML output directly, so everything else works "
+                           "exactly like FM24.",
+                 font=("Segoe UI", 9), fg=self.fg_muted, bg=self.bg_dark, justify="left",
+                 wraplength=600).pack(anchor="w", padx=20, pady=(0, 10))
+
+        steps = (
+            "1. Install BepInEx 6 (Unity IL2CPP) into the FM26 game folder first.\n"
+            "2. Download the FM26 Player Export plugin from FM Scout.\n"
+            "3. Copy FM26PlayerExport.dll into:  BepInEx\\plugins\\FM26PlayerExport\\\n"
+            "4. Launch FM26, add the ID column to your Player Search view, press F9.\n"
+            "5. Back here: set the Watch Directory to the plugin's output folder."
+        )
+        tk.Label(win, text=steps, font=("Segoe UI", 9), fg=self.fg_light, bg=self.bg_input,
+                 justify="left", anchor="w", padx=14, pady=12).pack(fill="x", padx=20)
+
+        tk.Label(win, text="Tip: the exported CSV lands in Documents\\Sports Interactive\\"
+                           "Football Manager 2026\\FM26PlayerExport by vinteset\\ — make sure "
+                           "the ID column is visible or the app can't map faces.",
+                 font=("Segoe UI", 8), fg=self.color_warning, bg=self.bg_dark, justify="left",
+                 wraplength=600).pack(anchor="w", padx=20, pady=(10, 0))
+
+        btn_row = tk.Frame(win, bg=self.bg_dark)
+        btn_row.pack(fill="x", padx=20, pady=16)
+        tk.Button(btn_row, text="Open plugin page", font=("Segoe UI", 10, "bold"),
+                  bg=self.color_accent, fg=self.fg_light, activebackground="#5848c2",
+                  activeforeground=self.fg_light, bd=0, padx=16, pady=6,
+                  command=lambda: self.fm26_callback("page")).pack(side="left")
+        tk.Button(btn_row, text="Set Watch Directory to plugin output", font=("Segoe UI", 9, "bold"),
+                  bg=self.bg_input, fg=self.fg_light, activebackground="#3a3a44",
+                  activeforeground=self.fg_light, bd=0, padx=14, pady=6,
+                  command=lambda: self.fm26_callback("watch")).pack(side="left", padx=(10, 0))
+        tk.Button(btn_row, text="Close", font=("Segoe UI", 9), bg=self.bg_input,
                   fg=self.fg_muted, activebackground="#3a3a44", activeforeground=self.fg_light,
                   bd=0, padx=14, pady=6, command=win.destroy).pack(side="right")
 
