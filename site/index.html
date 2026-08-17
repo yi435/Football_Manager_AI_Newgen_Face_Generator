@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FM AI Newgen Generator — Realistic AI Faces for Football Manager 2024</title>
-<meta name="description" content="Generate photorealistic, unlimited AI faces for your FM24 youth academy players — free, offline, on your own GPU.">
+<title>FM AI Newgen Generator — Realistic AI Faces for Football Manager</title>
+<meta name="description" content="Generate photorealistic, unlimited AI faces for newgen players — or any player without a face — in Football Manager 24 and 26. Free, offline, on your own GPU.">
 <meta name="theme-color" content="#121214">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236c5ce7'/%3E%3Ctext x='50' y='68' font-size='58' text-anchor='middle' fill='%23f1f1f5' font-family='sans-serif' font-weight='bold'%3EB%3C/text%3E%3C/svg%3E">
 <style>
@@ -32,15 +32,9 @@
   }
   .wrap { max-width: 1020px; margin: 0 auto; padding: 0 24px; }
 
-  /* ---------- header ---------- */
-  header {
-    padding: 20px 0;
-    position: sticky; top: 0; z-index: 50;
-    background: rgba(18, 18, 20, .82);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-bottom: 1px solid transparent;
-  }
+  header { padding: 20px 0; position: sticky; top: 0; z-index: 50;
+    background: rgba(18, 18, 20, .82); backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid transparent; }
   header.scrolled { border-bottom-color: var(--line); }
   header .wrap { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
   .logo { font-size: 19px; font-weight: 800; color: var(--light); letter-spacing: .3px; }
@@ -49,108 +43,84 @@
   nav a { color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 600; transition: color .15s ease; }
   nav a:hover { color: var(--light); }
 
-  /* ---------- hero ---------- */
-  .hero {
-    text-align: center; padding: 96px 24px 56px; position: relative; overflow: hidden;
-  }
-  .hero::before {
-    content: ""; position: absolute; inset: -40% -10% auto -10%;
-    height: 420px; background:
-      radial-gradient(ellipse 60% 55% at 50% 0%, var(--accent-soft), transparent 70%);
-    pointer-events: none;
-  }
+  .hero { text-align: center; padding: 96px 24px 56px; position: relative; overflow: hidden; }
+  .hero::before { content: ""; position: absolute; inset: -40% -10% auto -10%; height: 420px;
+    background: radial-gradient(ellipse 60% 55% at 50% 0%, var(--accent-soft), transparent 70%);
+    pointer-events: none; }
   .hero .wrap { position: relative; }
-  .kicker {
-    color: var(--accent); font-weight: 700; letter-spacing: 3px; font-size: 13px;
-    margin-bottom: 18px; text-transform: uppercase;
-  }
-  .hero h1 {
-    font-size: 46px; font-weight: 800; letter-spacing: -.5px;
-    line-height: 1.12; margin-bottom: 18px;
-  }
+  .kicker { color: var(--accent); font-weight: 700; letter-spacing: 3px; font-size: 13px; margin-bottom: 18px; text-transform: uppercase; }
+  .hero h1 { font-size: 46px; font-weight: 800; letter-spacing: -.5px; line-height: 1.12; margin-bottom: 18px; }
   .hero h1 span { color: var(--accent); }
-  .lede { font-size: 17px; color: var(--muted); max-width: 620px; margin: 0 auto; }
-  .cta-row { margin-top: 36px; }
-  .btn {
-    display: inline-block; padding: 16px 34px; font-size: 16px; font-weight: 700;
+  .lede { font-size: 17px; color: var(--muted); max-width: 640px; margin: 0 auto; }
+  .free-line { margin-top: 14px; font-size: 15px; font-weight: 600; color: var(--light); }
+  .free-line b { color: var(--accent); }
+  .cta-row { margin-top: 32px; }
+  .btn { display: inline-block; padding: 16px 34px; font-size: 16px; font-weight: 700;
     border-radius: 10px; text-decoration: none; cursor: pointer;
-    transition: transform .15s ease, box-shadow .15s ease, background .2s ease;
-  }
+    transition: transform .15s ease, box-shadow .15s ease, background .2s ease; }
   .btn-primary { background: var(--accent); color: var(--light); box-shadow: 0 8px 26px rgba(108,92,231,.35); }
   .btn-primary:hover { background: #5848c2; transform: translateY(-2px); box-shadow: 0 12px 30px rgba(108,92,231,.45); }
-  .os-line { margin-top: 18px; font-size: 13px; color: var(--muted); }
-  .expect { margin-top: 4px; font-size: 13px; color: var(--muted); }
+  .os-line { margin-top: 16px; font-size: 13px; color: var(--muted); }
   .code, code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
   .code { color: var(--light); }
-  .proof {
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 38px;
-    margin: 40px auto 0; max-width: 760px; padding: 16px 24px;
+  .proof { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 38px;
+    margin: 38px auto 0; max-width: 780px; padding: 16px 26px;
     background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-    font-size: 14px; color: var(--muted);
-  }
+    font-size: 14px; color: var(--muted); }
   .proof b { color: var(--light); font-weight: 700; }
 
-  /* ---------- sections ---------- */
   section { padding: 64px 0; border-top: 1px solid #1e1e23; }
   h2 { font-size: 30px; letter-spacing: -.3px; margin-bottom: 8px; }
   h2 span { color: var(--accent); }
-  .sec-sub { color: var(--muted); font-size: 15px; margin-bottom: 32px; max-width: 640px; }
+  .sec-sub { color: var(--muted); font-size: 15px; margin-bottom: 32px; max-width: 680px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
-  .card {
-    background: var(--panel); border-radius: 12px; padding: 24px;
-    border: 1px solid var(--line); transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
-  }
+  .card { background: var(--panel); border-radius: 12px; padding: 24px;
+    border: 1px solid var(--line);
+    transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
   .card:hover { transform: translateY(-3px); border-color: #33333c; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
   .card h3 { font-size: 16px; margin-bottom: 8px; color: var(--light); }
   .card p { font-size: 14px; color: var(--muted); }
+  .card.compact { padding: 18px 20px; }
+  .card.compact h3 { font-size: 15px; }
 
-  /* ---------- showcase ---------- */
   .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
   figure { margin: 0; }
-  .ph {
-    position: relative; aspect-ratio: 4 / 5; border-radius: 12px; overflow: hidden;
-    background:
-      repeating-conic-gradient(#1e1e24 0% 25%, #222229 0% 50%) 50% / 22px 22px;
-    border: 1px solid var(--line);
-  }
+  .ph { position: relative; aspect-ratio: 4 / 5; border-radius: 12px; overflow: hidden;
+    background: repeating-conic-gradient(#1e1e24 0% 25%, #222229 0% 50%) 50% / 22px 22px;
+    border: 1px solid var(--line); }
   .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .ph.missing img { display: none; }
-  .ph.missing::before {
-    content: "📸\A sample face coming soon"; white-space: pre-wrap;
+  .ph.missing::before { content: "📸\A sample face coming soon"; white-space: pre-wrap;
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    text-align: center; font-size: 13px; color: var(--muted); padding: 12px;
-  }
+    text-align: center; font-size: 13px; color: var(--muted); padding: 12px; }
   figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; text-align: center; }
-  .ba {
-    display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center;
-    margin-top: 34px;
-  }
+  .shot { margin-top: 20px; }
+  .shot .ph { aspect-ratio: 16 / 9; }
+  .shot.wide .ph.missing::before { content: "🖥️ app / dashboard screenshot coming soon"; }
+  .ba { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; margin-top: 34px; }
   .ba .card { text-align: center; }
   .ba .card h3 { margin-bottom: 14px; font-size: 15px; letter-spacing: 1px; text-transform: uppercase; }
   .ba .card.before h3 { color: var(--muted); }
   .ba .card.after h3 { color: var(--success); }
   .ba-arrow { font-size: 30px; color: var(--accent); font-weight: 800; }
 
-  /* ---------- steps ---------- */
   .steps { counter-reset: step; padding-left: 0; list-style: none; }
-  .steps li {
-    counter-increment: step; padding: 18px 0 18px 48px; position: relative;
-    font-size: 15px; color: var(--muted); border-bottom: 1px solid #1e1e23;
-  }
-  .steps li::before {
-    content: counter(step); position: absolute; left: 0; top: 18px; width: 32px; height: 32px;
+  .steps li { counter-increment: step; padding: 18px 0 18px 48px; position: relative;
+    font-size: 15px; color: var(--muted); border-bottom: 1px solid #1e1e23; }
+  .steps li::before { content: counter(step); position: absolute; left: 0; top: 18px; width: 32px; height: 32px;
     border-radius: 50%; background: var(--accent); color: var(--light); font-weight: 800;
-    display: flex; align-items: center; justify-content: center; font-size: 14px;
-  }
-  .tag {
-    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .6px;
-    padding: 2px 9px; border-radius: 12px; margin-right: 8px; vertical-align: 2px; text-transform: uppercase;
-  }
+    display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .steps li strong { color: var(--light); }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .6px;
+    padding: 2px 9px; border-radius: 12px; margin-right: 8px; vertical-align: 2px; text-transform: uppercase; }
   .tag-auto { background: rgba(0,184,148,.15); color: var(--success); }
   .tag-manual { background: rgba(253,203,110,.15); color: var(--warning); }
-  .steps li strong { color: var(--light); }
 
-  /* ---------- table ---------- */
+  .callout { margin-top: 22px; background: var(--bg-2); border: 1px solid var(--line);
+    border-left: 3px solid var(--warning); border-radius: 10px; padding: 18px 20px; font-size: 14px; color: var(--muted); }
+  .callout h4 { color: var(--warning); font-size: 14px; margin-bottom: 8px; }
+  .callout a { color: var(--light); }
+
   table { width: 100%; border-collapse: collapse; margin-top: 12px; }
   th, td { text-align: left; padding: 13px 14px; font-size: 14px; border-bottom: 1px solid var(--line); }
   th { color: var(--muted); font-weight: 600; }
@@ -158,32 +128,25 @@
   .ok { color: var(--success); }
   .warn { color: var(--warning); }
 
-  /* ---------- accordion ---------- */
   details { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
-  details summary {
-    cursor: pointer; padding: 16px 20px; font-weight: 700; font-size: 15px;
-    color: var(--light); list-style: none; transition: background .15s ease;
-  }
+  details summary { cursor: pointer; padding: 16px 20px; font-weight: 700; font-size: 15px;
+    color: var(--light); list-style: none; transition: background .15s ease; }
   details summary:hover { background: var(--bg-2); }
   details summary::after { content: "▾"; float: right; color: var(--accent); }
   details[open] summary::after { content: "▴"; }
   details .body { padding: 0 20px 18px; font-size: 14px; color: var(--muted); }
-  details .body p { margin-top: 8px; }
+  details .body p, details .body ol { margin-top: 8px; }
+  details .body ol { padding-left: 18px; }
   details .body .btn { margin-top: 12px; }
 
-  /* ---------- misc ---------- */
   .cta-band { text-align: center; }
   .cta-band h2 { margin-bottom: 18px; }
   .sub { margin-top: 14px; font-size: 13px; color: var(--muted); }
-  .coming {
-    display: inline-block; padding: 16px 34px; font-size: 16px; font-weight: 700;
-    border-radius: 10px; background: var(--panel); color: var(--muted);
-    border: 1px dashed #33333c;
-  }
+  .coming { display: inline-block; padding: 16px 34px; font-size: 16px; font-weight: 700;
+    border-radius: 10px; background: var(--panel); color: var(--muted); border: 1px dashed #33333c; }
   footer { text-align: center; padding: 44px 0; color: var(--muted); font-size: 13px; border-top: 1px solid #1e1e23; }
   footer a { color: var(--muted); }
 
-  /* ---------- reveal animation ---------- */
   .reveal { opacity: 0; transform: translateY(16px); transition: opacity .5s ease, transform .5s ease; }
   .reveal.in { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) {
@@ -198,7 +161,6 @@
     header .wrap { flex-direction: column; gap: 8px; }
     .gallery { grid-template-columns: repeat(2, 1fr); }
   }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
@@ -219,18 +181,18 @@
 
 <div class="hero">
   <div class="wrap">
-    <div class="kicker">Free fan tool · Windows · v1.0</div>
-    <h1>Realistic AI Faces for <span>Football Manager 2024</span></h1>
-    <p class="lede">Automatically generate photorealistic, unlimited portraits for every youth academy player in your save. 100% offline — it runs on your own GPU.</p>
+    <div class="kicker">Free fan tool · Windows · v1.1</div>
+    <h1>Realistic AI Faces for <span>Football Manager</span></h1>
+    <p class="lede">Automatically generate photorealistic, unlimited portraits for your <strong>newgen players</strong> — or any player without a face — in your FM save.</p>
+    <p class="free-line">Free · Offline · Unlimited — <b>runs on your own GPU</b></p>
     <div class="cta-row" id="herocta"></div>
-    <p class="os-line">Windows 10 / 11 &nbsp;·&nbsp; NVIDIA GPU with 6–8 GB VRAM</p>
-    <p class="expect">First run downloads the AI engine + realism model (~9 GB) — one-time setup.</p>
+    <p class="os-line">Windows 10 / 11 &nbsp;·&nbsp; see System Requirements below for the GPU spec</p>
     <div class="proof">
-      <span><b>v1.0</b> release</span>
-      <span>Installer <b>~40&nbsp;MB</b> · <b class="code">FMNewgenGenerator.exe</b></span>
+      <span><b>v1.1</b> release</span>
+      <span><b class="code">FMNewgenGenerator.exe</b> ~40&nbsp;MB → <b>~9&nbsp;GB</b> after setup</span>
       <span>Windows <b>10 / 11</b></span>
+      <span>Works with <b>FM24 &amp; FM26</b></span>
       <span>Free — <b>no credits, no limits</b></span>
-      <span><b class="code">100% offline</b></span>
     </div>
   </div>
 </div>
@@ -238,20 +200,17 @@
 <section id="showcase">
   <div class="wrap">
     <h2>See it in <span>action</span></h2>
-    <p class="sec-sub">Every face is generated locally, then mapped straight into your save. Real results drop here as samples are collected.</p>
+    <p class="sec-sub">Every face is generated locally on your GPU, then mapped straight into your save. Real results drop here as samples are collected.</p>
     <div class="gallery">
       <figure><div class="ph"><img src="img/sample-1.jpg" alt="Sample generated newgen face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · France U19</figcaption></figure>
       <figure><div class="ph"><img src="img/sample-2.jpg" alt="Sample generated newgen face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · Brazil U20</figcaption></figure>
       <figure><div class="ph"><img src="img/sample-3.jpg" alt="Sample generated newgen face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · England U18</figcaption></figure>
-      <figure><div class="ph"><img src="img/sample-4.jpg" alt="Sample generated newgen face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · Morocco U19</figcaption></figure>
-      <figure><div class="ph"><img src="img/sample-5.jpg" alt="Sample generated newgen face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · Nigeria U20</figcaption></figure>
-      <figure><div class="ph"><img src="img/sample-6.jpg" alt="Sample generated newgen face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · Japan U18</figcaption></figure>
     </div>
     <div class="ba">
       <div class="card before">
         <h3>Before</h3>
         <div class="ph"><img src="img/before-face.jpg" alt="FM player search showing no face" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div>
-        <p style="margin-top:12px;">Newgens appear with blank portraits — even with a facepack installed.</p>
+        <p style="margin-top:12px;">Players without a face show blank portraits in FM.</p>
       </div>
       <div class="ba-arrow">→</div>
       <div class="card after">
@@ -260,30 +219,41 @@
         <p style="margin-top:12px;">A photorealistic face, aged per milestone, mapped into your save.</p>
       </div>
     </div>
-    <p class="sub" style="text-align:center;">Screenshots shown are fill-ins — drop your own faces into <code>site/img/</code> to replace them.</p>
+    <div class="shot">
+      <div class="ph"><img src="img/app-ui.jpg" alt="App screenshot" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div>
+      <figcaption>Drop your app screenshot into <code>site/img/app-ui.jpg</code> to show it here.</figcaption>
+    </div>
   </div>
 </section>
 
 <section id="what">
   <div class="wrap">
     <h2>What it <span>does</span></h2>
-    <p class="sec-sub">Four things it handles for you, every time a new academy player appears in your save.</p>
+    <p class="sec-sub">Six things it handles for you, every time a new academy player appears in your save.</p>
     <div class="grid">
-      <div class="card">
+      <div class="card compact">
         <h3>Realistic academy faces</h3>
-        <p>Photorealistic headshots on a clean studio background — no logos, no grass, no waxy “AI” skin. Age, nationality and personality shape each portrait.</p>
+        <p>Photorealistic headshots on a clean studio background — no logos, no grass, no waxy “AI” skin.</p>
       </div>
-      <div class="card">
+      <div class="card compact">
         <h3>Auto-watch &amp; generate</h3>
-        <p>Point it at your exports folder once. The app watches it, spots new players, and generates every face automatically.</p>
+        <p>Point it at your exports once. New players are spotted and faces are generated automatically.</p>
       </div>
-      <div class="card">
+      <div class="card compact">
         <h3>Consistent aging</h3>
-        <p>Each player keeps the same facial structure as they grow. Hair, stubble and features update at ages 16, 20, 24 &amp; 28.</p>
+        <p>Same facial structure as players grow — hair, stubble and features update at 16, 20, 24 &amp; 28.</p>
       </div>
-      <div class="card">
+      <div class="card compact">
+        <h3>FM24 &amp; FM26</h3>
+        <p>FM26 removed text export, so it reads the free export plugin’s CSV/HTML the same way.</p>
+      </div>
+      <div class="card compact">
+        <h3>Custom face styles</h3>
+        <p>“Edit Face Style…” lets you change the positive &amp; negative prompts — your look, your rules.</p>
+      </div>
+      <div class="card compact">
         <h3>Local &amp; free forever</h3>
-        <p>Everything runs on your GPU with a bundled offline engine. No cloud, no API keys, no subscription — your faces never leave your PC.</p>
+        <p>On your GPU with a bundled offline engine. No cloud, no API keys, no subscription.</p>
       </div>
     </div>
   </div>
@@ -292,12 +262,27 @@
 <section id="how">
   <div class="wrap">
     <h2>How it <span>works</span></h2>
-    <p class="sec-sub">Steps tagged <span class="tag tag-auto">Auto</span> are handled by the app. <span class="tag tag-manual">Manual</span> ones need you, about a minute in FM.</p>
+    <p class="sec-sub">Steps tagged <span class="tag tag-auto">Auto</span> are handled by the app. <span class="tag tag-manual">Manual</span> ones need you — about a minute in FM.</p>
     <ol class="steps">
-      <li><span class="tag tag-auto">Auto</span><div><strong>One-click installer.</strong> Checks your system, downloads the engine (ComfyUI) and the RealVisXL model, and sets everything up with a progress bar.</div></li>
-      <li><span class="tag tag-manual">Manual</span><div><strong>Export your NewGens from FM.</strong> Apply the included filter, open <em>Player Search</em>, select all (Ctrl+A), then <em>Ctrl+P → To text file</em>. Save into the folder the app is watching.</div></li>
-      <li><span class="tag tag-auto">Auto</span><div><strong>Faces get generated.</strong> The app spots each new player, builds a picture-based prompt from their age/nationality/personality, and renders a face on your GPU.</div></li>
-      <li><span class="tag tag-manual">Manual</span><div><strong>Reload the skin in FM.</strong> <em>Preferences → Interface</em>, untick <em>“Use caching”</em>, then <em>Clear Cache → Reload Skin</em>. The faces appear in-game.</div></li>
+      <li><span class="tag tag-auto">Auto</span><div><strong>One-click installer.</strong> Checks your system, downloads the engine (ComfyUI) and the RealVisXL model, installs everything with a progress bar, and auto-starts the engine on launch. If an install piece ever breaks, <em>Maintenance → Repair</em> fixes it.</div></li>
+      <li><span class="tag tag-manual">Manual</span><div><strong>Export your player list.</strong> On FM24: apply the included filter, then <em>Ctrl+P → To text file</em>. On FM26 (which removed text export): install the free export plugin — see the box below.</div></li>
+      <li><span class="tag tag-auto">Auto</span><div><strong>Faces get generated.</strong> The app watches the export folder, builds a unique prompt per player (age, nationality, personality), and renders each face on your GPU.</div></li>
+      <li><span class="tag tag-manual">Manual</span><div><strong>Reload the skin in FM.</strong> <em>Preferences → Interface</em>, untick <em>“Use caching”</em>, then <em>Clear Cache → Reload Skin</em> — the new faces appear.</div></li>
+    </ol>
+    <p style="color:var(--muted); font-size:14px;">Want a different look? Use <strong>Edit Face Style…</strong> in the app to rewrite the prompt your faces are built from, and reset back to the defaults anytime.</p>
+
+    <div class="callout">
+      <h4>Playing FM26? FM removed the text export — here's the fix</h4>
+      <p>Install the free <strong>FM26 Player Export</strong> plugin (BepInEx) by vinteset. Then: set up the view, show the <strong>ID</strong> column, press <strong>F9</strong>, and the app reads its CSV/HTML exactly like an FM24 export. The in-app <em>FM26 Setup…</em> button links the download and can point your Watch Directory at the plugin’s output folder for you.</p>
+      <p style="margin-top:8px;"><a href="https://www.fmscout.com/a-fm26-player-csv-export.html" rel="noopener" target="_blank">→ Get FM26 Player Export on FM Scout</a></p>
+    </div>
+
+    <h3 style="margin-top:34px; margin-bottom:10px; color:var(--light); font-size:18px;">The FM24 filter (one-time placement)</h3>
+    <p style="color:var(--muted); font-size:14px;">Download the filter, drop it into your game’s <code>filters</code> folder, restart FM, and it appears under <em>Player Search</em>.</p>
+    <ol style="color:var(--muted); font-size:14px; padding-left:18px; margin-top:10px;">
+      <li><a class="btn btn-primary" style="padding:8px 18px; font-size:14px;" href="/download/fm_newgen_export_filter.fmf" download>⬇ Download NewGen export filter (.fmf)</a></li>
+      <li>Create <code>Documents\Sports Interactive\Football Manager 2024\filters\</code> if it doesn’t exist.</li>
+      <li>Move the <code>.fmf</code> into it, restart FM, and the filter shows up in <em>Player Search</em>.</li>
     </ol>
   </div>
 </section>
@@ -305,12 +290,13 @@
 <section id="requirements">
   <div class="wrap">
     <h2>System <span>requirements</span></h2>
-    <p class="sec-sub">Generation is local, so it needs a decent NVIDIA card. CPU-only mode works but is slow.</p>
+    <p class="sec-sub">Generation runs locally, so it needs a Windows PC with a decent NVIDIA card. CPU-only mode works but is slow.</p>
     <table>
       <tr><td>OS</td><td>Windows 10 / 11</td></tr>
-      <tr><td>GPU</td><td>NVIDIA with 6–8&nbsp;GB VRAM <span class="ok">(recommended)</span> <span class="warn">CPU mode works but is slow</span></td></tr>
-      <tr><td>Disk space</td><td>~25&nbsp;GB free (engine + model, one-time)</td></tr>
-      <tr><td>Game</td><td>Football Manager 2024 (Windows)</td></tr>
+      <tr><td>GPU</td><td>NVIDIA — <strong>4&nbsp;GB VRAM minimum</strong> <span class="warn">(slow)</span> · 6–8&nbsp;GB recommended <span class="ok">(≈5–15 s per face)</span></td></tr>
+      <tr><td>RAM</td><td>8&nbsp;GB minimum · 16&nbsp;GB recommended</td></tr>
+      <tr><td>Disk space</td><td>~25&nbsp;GB free recommended (engine ~2&nbsp;GB + model ~7&nbsp;GB, one-time)</td></tr>
+      <tr><td>Game</td><td><strong>FM24</strong>: works out of the box &nbsp;·&nbsp; <strong>FM26</strong>: needs the free export plugin (see “How it works”)</td></tr>
     </table>
   </div>
 </section>
@@ -318,26 +304,31 @@
 <section id="quickstart">
   <div class="wrap">
     <h2>Quick <span>start</span></h2>
-    <p class="sec-sub">The whole flow, in under five minutes.</p>
+    <p class="sec-sub">A complete step-by-step — no prior knowledge assumed.</p>
     <details open>
-      <summary>Short version</summary>
+      <summary>1/ Install the app (5 min)</summary>
       <div class="body">
-        <p>1. Run the installer and let it finish the download + setup.</p>
-        <p>2. Export your NewGens to the watched folder (<em>Ctrl+P → To text file</em>).</p>
-        <p>3. Wait for the faces, then <em>Reload Skin</em> in FM settings.</p>
+        <p>Download <code>FMNewgenGenerator.exe</code> and run it. The setup wizard downloads the AI engine (~2&nbsp;GB) and the RealVisXL model (~7&nbsp;GB) with a progress bar, then installs everything under <code>%LOCALAPPDATA%\FM Newgen Generator\</code>. When it opens, wait for the status badge to turn green (“Connected”) — that means the engine is ready.</p>
       </div>
     </details>
     <details>
-      <summary>The FM side: exporting players (exact clicks)</summary>
+      <summary>2/ One-time FM preferences (mandatory)</summary>
       <div class="body">
-        <p>Open <em>Player Search</em> in FM24, apply the included filter, press <strong>Ctrl+A</strong> to select all rows, then <strong>Ctrl+P</strong> and choose <em>“To text file”</em>. Save it into the folder shown in the app — the app picks it up and generates every face.</p>
-        <p><a class="btn btn-primary" style="padding:8px 18px; font-size:14px;" href="/download/fm_newgen_export_filter.fmf" download>⬇ Download NewGen export filter (.fmf)</a></p>
+        <p>Open <em>Preferences → Interface</em>, <strong>untick</strong> “Use caching to decrease page loading times”, <strong>tick</strong> “Reload skin when confirming changes”, then <em>Clear Cache → Reload Skin</em>. Without this, FM won’t display the new faces.</p>
       </div>
     </details>
     <details>
-      <summary>GPU notes: which cards work well</summary>
+      <summary>3/ Export your newgens</summary>
       <div class="body">
-        <p>A 6–8&nbsp;GB card (e.g. RTX 2060/3060/4060) renders each face in roughly 5–15 seconds. Cards with less VRAM fall back to CPU mode, which is noticeably slower. Generation runs in the background, so you can keep playing while faces are made.</p>
+        <p><strong>FM24:</strong> download the filter above, place it in <code>…\Football Manager 2024\filters\</code>, open <em>Player Search</em>, apply it, <strong>Ctrl+A</strong>, <strong>Ctrl+P → To text file</strong> into your Watch Directory.</p>
+        <p><strong>FM26:</strong> install the free export plugin, show the <strong>ID</strong> column, press <strong>F9</strong>. Point the Watch Directory at its output folder.</p>
+        <p>In both cases the export must include the <strong>ID</strong> column — the app maps faces by UID.</p>
+      </div>
+    </details>
+    <details>
+      <summary>4/ Generate &amp; confirm</summary>
+      <div class="body">
+        <p>Press <strong>Start Watcher</strong> in the app, then export in FM. Watch the log fill up as faces are produced. Finish with <em>Reload Skin</em> (step 2) and check a player’s profile.</p>
       </div>
     </details>
   </div>
@@ -347,24 +338,28 @@
   <div class="wrap">
     <h2>FAQ <span>▸</span></h2>
     <div class="card" style="margin-bottom:14px;">
-      <h3>Why is the first download ~9&nbsp;GB?</h3>
-      <p>The small EXE installs a full offline AI engine (ComfyUI) plus the photorealistic RealVisXL model on your PC. One-time download — after that everything is offline and free.</p>
+      <h3>Does it work with Football Manager 2026?</h3>
+      <p>Yes — FM26 removed the classic text export, so the app reads output from the free <strong>FM26 Player Export</strong> plugin (BepInEx) instead. Show the ID column, press F9, and everything downstream is automatic.</p>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <h3>The F26 plugin file is flagged by antivirus / SmartScreen</h3>
+      <p>Normal: it’s an unsigned DLL off the internet. Right-click the DLL → <em>Properties → Unblock</em>, and if your antivirus removes it, add the <code>BepInEx\plugins\FM26PlayerExport</code> folder to exceptions. Full source of the plugin is public for verification.</p>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <h3>The data export is empty or headers show “Col1, Col2…”</h3>
+      <p>Press <strong>F8</strong> in the plugin to re-scan the current screen, then <strong>F9</strong> again. Make sure you’re on the Squad or Player Search screen, and that the <strong>ID</strong> column is visible.</p>
     </div>
     <div class="card" style="margin-bottom:14px;">
       <h3>It says “ComfyUI not connected” — what do I do?</h3>
-      <p>The app auto-starts the engine and shows a green “Connected” badge once it’s ready. If it stays offline for over a minute, use <em>Maintenance → Repair</em> in the app — it fixes a broken engine or a misplaced model download automatically.</p>
+      <p>The app auto-starts the engine and shows a green “Connected” badge once it’s ready. If it stays offline for over a minute, use <em>Maintenance → Repair</em> — it fixes a broken engine or a misplaced model download automatically.</p>
     </div>
     <div class="card" style="margin-bottom:14px;">
       <h3>Do I need a cloud / API key?</h3>
       <p>No. No subscription, no credits, no keys. Generation runs 100% locally on your NVIDIA GPU.</p>
     </div>
-    <div class="card" style="margin-bottom:14px;">
+    <div class="card">
       <h3>Does it touch my real-player facepack?</h3>
       <p>No. NewGen faces are written to a separate graphics folder with their own config, so existing facepacks stay untouched.</p>
-    </div>
-    <div class="card">
-      <h3>Who made this?</h3>
-      <p>A solo FM player who wanted a proper academy facepack. It’s free, open (source on request), and not affiliated with Sports Interactive.</p>
     </div>
   </div>
 </section>
@@ -379,33 +374,27 @@
 
 <footer>
   <div class="wrap">
-    FM AI Newgen Generator · a free fan tool for Football Manager 2024 — v1.0
-    <br>Not affiliated with Sports Interactive. The bundled RealVisXL model is distributed under the CreativeML Open RAIL++-M license.
+    FM AI Newgen Generator · a free fan tool for Football Manager 2024 &amp; 2026 — v1.1
+    <br>Not affiliated with Sports Interactive. The bundled RealVisXL model is distributed under the CreativeML Open RAIL++-M license. The FM26 Player Export plugin is a third-party tool used under its own terms.
   </div>
 </footer>
 
 <script>
-  // --- sticky header border on scroll ---
   const header = document.getElementById("top");
   const onScroll = function () { header.classList.toggle("scrolled", window.scrollY > 8); };
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
 
-  // --- reveal-on-scroll ---
-  const observers = [];
   if (window.IntersectionObserver && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     const io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
     }, { threshold: 0.12 });
-    document.querySelectorAll(".grid, .gallery, .steps, .ba, table, details, .card").forEach(function (el, i) {
+    document.querySelectorAll(".grid, .gallery, .steps, .ba, .shot, table, details, .card").forEach(function (el) {
       el.classList.add("reveal");
       io.observe(el);
     });
-  } else {
-    document.querySelectorAll(".reveal").forEach(function (el) { el.classList.add("in"); });
   }
 
-  // --- download auto-detect (EXE is uploaded to site/download by deploy.bat) ---
   const HOSTED_FILE = "/download/FMNewgenGenerator.exe";
   const GITHUB_LATEST = "https://github.com/yi435/fm/releases/latest/download/FMNewgenGenerator.exe";
   const dl = document.getElementById("dl");
@@ -414,7 +403,7 @@
   function renderDownload(url, ready) {
     if (dl) {
       dl.innerHTML = ready
-        ? '<a class="btn btn-primary" href="' + url + '">⬇ Download FM AI Newgen Generator <span class="code">v1.0</span></a>'
+        ? '<a class="btn btn-primary" href="' + url + '">⬇ Download FM AI Newgen Generator <span class="code">v1.1</span></a>'
         : '<span class="coming">🚧 Installer coming soon — final build is being packaged</span>' +
           '<div class="sub" style="margin-top:10px;">One-click installer · no cloud, no credits, no limits</div>';
     }

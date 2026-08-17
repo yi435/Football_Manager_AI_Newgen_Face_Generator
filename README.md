@@ -1,8 +1,12 @@
 # Football Manager AI Newgen Face Generator
 
-Automatically generates photorealistic, unlimited AI portraits for your **Football Manager 2024** youth academy players (newgens/regens) — free, offline, on your own GPU.
+Automatically generates photorealistic, unlimited AI portraits for your **Football Manager 2024** and **Football Manager 2026** youth academy players (newgens/regens) — or any player without a face — free, offline, on your own GPU.
 
 > **Most users:** download `FMNewgenGenerator.exe` from the [official site](https://fm-face-generator.netlify.app). The first run auto-installs a local AI engine (ComfyUI) plus the RealVisXL realism model and sets everything up for you.
+>
+> - Windows 10 / 11 · **NVIDIA GPU** with 4 GB VRAM minimum (6–8 GB recommended) · 8 GB RAM minimum (16 GB recommended)
+> - ~25 GB free disk (engine ~2 GB + model ~7 GB, one-time install)
+> - **FM26 players:** FM26 removed the text export → the free **FM26 Player Export** plugin (fmscout) is supported — see Quick Start step 3.
 
 | Provider | Cost | Quality | Requirements |
 |----------|------|---------|--------------|
@@ -37,10 +41,19 @@ For FM to show the generated faces:
 4. **Clear Cache**, then **Reload Skin**.
 
 ### 3. Export your newgens
+
+**FM24** — free export filter:
 1. Download the included export filter: **`fm_newgen_export_filter.fmf`** from the [site download page](https://fm-face-generator.netlify.app).
 2. Copy it to `Documents\Sports Interactive\Football Manager 2024\filters\`.
 3. In FM: **Scouting → Player Search**, apply the filter (make sure the view shows the **ID** column — newgen UIDs start with `2`).
 4. **Ctrl + A** (select all) → **Ctrl + P** → **To text file** → save into your configured **Watch Directory**.
+
+**FM26** — FM removed the text export, so use the free third-party plugin **FM26 Player Export** by vinteset (BepInEx):
+1. Install [BepInEx 6 (IL2CPP)](https://docs.bepinex.dev/) for FM26 and copy the plugin's `FM26PlayerExport.dll` into `BepInEx\plugins\FM26PlayerExport\`.
+2. In FM, make sure the **ID** column is visible in your player view.
+3. Press **F9** to export — the app reads its CSV/HTML exactly like an FM24 export.
+4. In the app, use **FM26 Setup… → Set Watch Directory to plugin output** so it watches the plugin's export folder (or your FM26 Documents folder).
+   - The plugin shows as “unverified”/“unknown publisher” DLL; right-click → **Properties → Unblock**, and add the plugin folder to antivirus exceptions if needed. Use the [plugin's official page](https://www.fmscout.com/a-fm26-player-csv-export.html) as the source of truth.
 
 ### 4. Generate
 In the app: set **Watch Directory** and **Graphics Directory**, press **Start Watcher**, then export in FM. The app parses the list, generates a face for every new UID, updates `config.xml`, and (optionally) reloads the skin for you.
@@ -50,6 +63,7 @@ In the app: set **Watch Directory** and **Graphics Directory**, press **Start Wa
 ## ✨ Key Features
 
 - **Unlimited offline generation** — local SDXL, no quotas, no API keys, no cloud.
+- **FM24 & FM26** — reads `Ctrl+P → To text file` exports on FM24 and the FM26 Player Export plugin's CSV/HTML (auto-detects `;`/`,`/`|`/tab delimiters and UTF-8/Latin-1 encodings).
 - **Milestone-based aging** — each UID seeds the face, so players keep the same bone structure while hair, stubble and mature features update at ages **16, 20, 24, 28**.
 - **Personality-aware prompts** — Model Citizen ≈ clean-cut; Temperamental ≈ stern; Jovial ≈ warm smile, etc.
 - **Weighted demographics** — multi-ethnic nations (France, England, Brazil…) roll realistic academy ratios.
@@ -76,6 +90,8 @@ The **Edit Face Style…** button in the app opens a raw prompt editor:
 | **Model list empty / checkpoint not found** | The model must live in the **nested** folder `ComfyUI\ComfyUI\models\checkpoints\` (portable installs are nested). Repair also migrates a misplaced model automatically. |
 | **Faces generated but not showing in FM** | Caching must be off (Quick Start step 2). **Clear Cache → Reload Skin**. Confirm the graphics folder in the app matches where your skin looks. |
 | **Nothing is generated after exporting** | The export must include the **ID** column (UIDs starting with `2`) and be saved into the app's **Watch Directory**. |
+| **FM26 plugin export is empty / shows “Col1, Col2…”** | Press **F8** in the plugin to re-scan the current screen, then **F9**. Stay on the Squad or Player Search screen and keep the **ID** column visible. |
+| **FM26 plugin/DLL removed by antivirus** | Normal — it's an unsigned third-party DLL. Right-click → Properties → Unblock, and add `BepInEx\plugins\FM26PlayerExport` to your antivirus exceptions. |
 | **Generation is very slow** | Less than 6–8 GB VRAM falls back to CPU. Lower the concurrency limit (and steps) in **Generation Settings**. |
 | **First-run download fails / stalls** | The wizard resumes partial downloads automatically. Check ~25 GB free disk space and retry. |
 | **SmartScreen / antivirus warning** | The EXE is unsigned. Click **More info → Run anyway** — the tool is open source; see *For developers* below. |
@@ -127,7 +143,7 @@ build.bat                  # -> dist\FMNewgenGenerator.exe
     ├── ui.py             # Dark Tkinter GUI (provider selector, Edit Face Style…)
     ├── setup_wizard.py   # First-run installer (engine + model + config)
     ├── watcher.py        # Background export-folder watcher
-    ├── parser.py         # RTF/HTML/TXT player parser + prompt builder
+    ├── parser.py         # RTF/HTML/TXT/CSV player parser + prompt builder
     ├── generator.py      # Async ComfyUI face generator
     └── xml_manager.py    # config.xml reader/writer
 ```
