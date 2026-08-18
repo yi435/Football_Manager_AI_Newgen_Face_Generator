@@ -296,22 +296,31 @@ class FaceGenerator:
                 uid = player["uid"]
                 # Build the prompt
                 prompt = PromptBuilder.build_prompt(player, prompt_template)
-                # Queue the task
-                tasks.append(self.download_face(session, uid, prompt, checkpoint))
+                # Queue the task (as a real Task so it can be cancelled)
+                tasks.append(asyncio.create_task(
+                    self.download_face(session, uid, prompt, checkpoint)))
 
             results = []
             pending = set(tasks)
-            for count, future in enumerate(asyncio.as_completed(pending), 1):
-                if cancel_check and cancel_check():
-                    # Abort: cancel everything not yet finished, then stop.
-                    for t in pending:
-                        t.cancel()
-                    break
-                res = await future
-                results.append(res)
-                pending.discard(future)
-                if progress_callback:
-                    # Trigger UI update
-                    progress_callback(count, len(tasks), res)
+            try:
+                while pending:
+                    if cancel_check and cancel_check():
+                        # Abort: cancel everything not yet finished, then stop.
+                        for t in pending:
+                            t.cancel()
+                        await asyncio.gather(*pending, return_exceptions=True)
+                        break
+                    done_set, pending = await asyncio.wait(
+                        pending, return_when=asyncio.FIRST_COMPLETED)
+                    for future in done_set:
+                        res = await future
+                        results.append(res)
+                        if progress_callback:
+                            # Trigger UI update
+                            progress_callback(len(results), len(tasks), res)
+            finally:
+                # Cancel anything still pending if we aborted mid-way.
+                for t in pending:
+                    t.cancel()
 
             return results
