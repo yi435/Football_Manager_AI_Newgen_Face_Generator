@@ -21,11 +21,13 @@ PROVIDER_NAMES = {
 }
 
 
-async def wait_for_comfyui(base_url, timeout=120, session=None):
+async def wait_for_comfyui(base_url, timeout=120, session=None, cancel_check=None):
     """
     Polls the ComfyUI /system_stats endpoint until it answers HTTP 200 or the
     timeout expires. ComfyUI can take a minute or two to boot (loading torch +
     the model), so generation should wait for it instead of failing instantly.
+    ``cancel_check`` (optional) is polled every cycle; when it returns True the
+    wait stops early and returns False.
     """
     base_url = base_url.rstrip("/")
 
@@ -36,19 +38,20 @@ async def wait_for_comfyui(base_url, timeout=120, session=None):
         except Exception:
             return False
 
+    async def _loop(s):
+        while time.monotonic() < deadline:
+            if cancel_check and cancel_check():
+                return False
+            if await _up(s):
+                return True
+            await asyncio.sleep(2)
+        return False
+
     deadline = time.monotonic() + timeout
     if session is None:
         async with aiohttp.ClientSession() as s:
-            while time.monotonic() < deadline:
-                if await _up(s):
-                    return True
-                await asyncio.sleep(2)
-        return False
-    while time.monotonic() < deadline:
-        if await _up(session):
-            return True
-        await asyncio.sleep(2)
-    return False
+            return await _loop(s)
+    return await _loop(session)
 
 
 class FaceGenerator:
@@ -255,17 +258,31 @@ class FaceGenerator:
         self._resolved_checkpoint = checkpoint
         return checkpoint
 
-    async def generate_faces_async(self, players_to_generate, prompt_template, progress_callback=None):
+    async def generate_faces_async(self, players_to_generate, prompt_template, progress_callback=None, cancel_check=None):
         """
         Takes a list of player dicts, generates prompts, and generates/downloads their faces.
+
+        ``cancel_check`` is an optional zero-arg callable returning True when the
+        caller wants to abort the batch. Pending tasks are cancelled and the
+        results gathered so far are returned (completed faces stay on disk).
         """
         from src.parser import PromptBuilder
 
         self._resolved_checkpoint = None
         async with aiohttp.ClientSession() as session:
             # Give an auto-started ComfyUI time to boot before submitting work.
+            # The wait itself is cancellable so "Cancel Batch" works even during
+            # a cold ComfyUI boot.
+            if cancel_check and cancel_check():
+                return [{"uid": p["uid"], "status": "cancelled",
+                         "error": "Cancelled by user before generation started."}
+                        for p in players_to_generate]
             if not await wait_for_comfyui(self.comfyui_base_url, timeout=180,
-                                          session=session):
+                                          session=session, cancel_check=cancel_check):
+                if cancel_check and cancel_check():
+                    return [{"uid": p["uid"], "status": "cancelled",
+                             "error": "Cancelled by user while waiting for ComfyUI."}
+                            for p in players_to_generate]
                 return [{"uid": p["uid"], "status": "failed",
                          "error": ("ComfyUI did not start in time. Launch it "
                                    "manually or restart the app.")}
@@ -283,9 +300,16 @@ class FaceGenerator:
                 tasks.append(self.download_face(session, uid, prompt, checkpoint))
 
             results = []
-            for count, future in enumerate(asyncio.as_completed(tasks), 1):
+            pending = set(tasks)
+            for count, future in enumerate(asyncio.as_completed(pending), 1):
+                if cancel_check and cancel_check():
+                    # Abort: cancel everything not yet finished, then stop.
+                    for t in pending:
+                        t.cancel()
+                    break
                 res = await future
                 results.append(res)
+                pending.discard(future)
                 if progress_callback:
                     # Trigger UI update
                     progress_callback(count, len(tasks), res)

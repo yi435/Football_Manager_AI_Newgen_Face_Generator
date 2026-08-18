@@ -68,7 +68,10 @@ In the app: set **Watch Directory** and **Graphics Directory**, press **Start Wa
 - **Personality-aware prompts** — Model Citizen ≈ clean-cut; Temperamental ≈ stern; Jovial ≈ warm smile, etc.
 - **Weighted demographics** — multi-ethnic nations (France, England, Brazil…) roll realistic academy ratios.
 - **Real-player safe** — faces go to their own folder + `config.xml`; existing facepacks are untouched.
+- **Cancel & resume batches** — a running batch can be stopped; finished faces are kept and the rest are queued for the next run (plus a live ETA on the progress bar).
+- **Generate Test Face** — renders one sample face with your current face style so you can preview prompt edits before generating a whole batch.
 - **Auto skin reload** *(optional)* — triggers FM's `Shift + R` reload hotkey on Windows.
+- **Log file** — every console message is also appended to `app.log` next to `config.json` for easier debugging.
 
 ## 🎨 Customizing the look (Edit Face Style…)
 

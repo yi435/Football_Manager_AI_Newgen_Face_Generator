@@ -7,7 +7,7 @@ from tkinter import filedialog, ttk, messagebox
 from tkinter.scrolledtext import ScrolledText
 
 class FMGeneratorUI:
-    def __init__(self, root, start_callback, stop_callback, save_config_callback, run_now_callback, check_provider_callback=None, maintenance_callback=None, face_style_callback=None, fm26_callback=None):
+    def __init__(self, root, start_callback, stop_callback, save_config_callback, run_now_callback, check_provider_callback=None, maintenance_callback=None, face_style_callback=None, fm26_callback=None, cancel_callback=None, test_face_callback=None, log_path=None):
         self.root = root
         self.start_callback = start_callback
         self.stop_callback = stop_callback
@@ -17,6 +17,9 @@ class FMGeneratorUI:
         self.maintenance_callback = maintenance_callback
         self.face_style_callback = face_style_callback
         self.fm26_callback = fm26_callback
+        self.cancel_callback = cancel_callback
+        self.test_face_callback = test_face_callback
+        self.log_path = log_path
         
         # Window settings
         self.root.title("FM AI Newgen Generator")
@@ -179,6 +182,12 @@ class FMGeneratorUI:
                                   command=self._open_fm26_setup)
         self.fm26_btn.pack(side="left", padx=(0, 15))
 
+        self.test_face_btn = tk.Button(provider_row, text="Generate Test Face", font=("Segoe UI", 9, "bold"),
+                                       bg=self.bg_input, fg=self.color_active, activebackground="#3a3a44",
+                                       activeforeground=self.color_active, bd=0, padx=10, pady=2,
+                                       command=self._generate_test_face)
+        self.test_face_btn.pack(side="left", padx=(0, 15))
+
         self.comfy_url_lbl = tk.Label(provider_row, text="ComfyUI URL:", font=("Segoe UI", 9, "bold"),
                                       fg=self.fg_light, bg=self.bg_panel)
         self.comfy_url_lbl.pack(side="left")
@@ -311,6 +320,12 @@ class FMGeneratorUI:
                                      bg=self.color_accent, fg=self.fg_light, activebackground="#5848c2", 
                                      activeforeground=self.fg_light, bd=0, padx=20, pady=8, command=self._run_now)
         self.run_now_btn.pack(side="left", padx=5)
+
+        self.cancel_btn = tk.Button(btn_frame, text="Cancel Batch", font=("Segoe UI", 10, "bold"),
+                                    bg=self.color_error, fg=self.fg_light, activebackground="#b22021",
+                                    activeforeground=self.fg_light, bd=0, padx=20, pady=8,
+                                    state="disabled", command=self._cancel_batch)
+        self.cancel_btn.pack(side="left", padx=5)
 
         # 2. Console / Logs Panel
         console_frame = tk.LabelFrame(main_container, text=" Live Console Logs ", 
@@ -605,6 +620,85 @@ class FMGeneratorUI:
         finally:
             self.root.after(0, lambda: self.run_now_btn.configure(state="normal"))
 
+    def _cancel_batch(self):
+        if self.cancel_callback:
+            self.cancel_callback()
+        self.cancel_btn.configure(state="disabled")
+
+    def set_generating(self, generating):
+        """Enables/disables the Cancel Batch button while a batch is running."""
+        state = "normal" if generating else "disabled"
+        self.root.after(0, lambda: self.cancel_btn.configure(state=state))
+
+    def _generate_test_face(self):
+        if not self.test_face_callback:
+            self.log("[Info] Test face generation is not available in this build.")
+            return
+        story = tk.Toplevel(self.root)
+        story.title("Generate Test Face")
+        story.configure(bg=self.bg_dark)
+        story.geometry("380x120")
+        story.resizable(0, 0)
+        tk.Label(story, text="Generating one test face with your current face style…",
+                 font=("Segoe UI", 10, "bold"), fg=self.fg_light, bg=self.bg_dark).pack(pady=18)
+        tk.Label(story, text="This may take a minute — a preview will pop up when ready.",
+                 font=("Segoe UI", 9), fg=self.fg_muted, bg=self.bg_dark).pack()
+        story.grab_set()
+
+        def _work():
+            try:
+                path, err = self.test_face_callback(self.graphics_path_var.get())
+            except Exception as e:
+                path, err = None, f"{type(e).__name__}: {e}"
+            self.root.after(0, lambda: _done(path, err))
+
+        def _done(path, err):
+            story.destroy()
+            if err:
+                messagebox.showerror("Test Face Failed", err)
+                return
+            self._show_test_face_preview(path)
+
+        threading.Thread(target=_work, daemon=True).start()
+
+    def _show_test_face_preview(self, path):
+        if not path or not os.path.exists(path):
+            messagebox.showerror("Test Face Failed", "The test face file is missing.")
+            return
+        try:
+            img = tk.PhotoImage(file=path)
+        except Exception as e:
+            self.log(f"[Error] Could not preview test face: {e}")
+            return
+
+        win = tk.Toplevel(self.root)
+        win.title("Test Face Preview")
+        win.configure(bg=self.bg_dark)
+        win.resizable(0, 0)
+
+        img_lbl = tk.Label(win, image=img, bg=self.bg_dark)
+        img_lbl.image = img
+        img_lbl.pack(padx=14, pady=(14, 6))
+
+        def _open_folder():
+            folder = os.path.dirname(path)
+            if sys.platform.startswith("win"):
+                os.startfile(folder)
+            else:
+                import subprocess
+                subprocess.Popen(["xdg-open", folder])
+
+        btn_row = tk.Frame(win, bg=self.bg_dark)
+        btn_row.pack(pady=(0, 12))
+        tk.Button(btn_row, text="Open Folder", font=("Segoe UI", 9, "bold"),
+                  bg=self.bg_input, fg=self.fg_light, activebackground="#3a3a44",
+                  activeforeground=self.fg_light, bd=0, padx=14, pady=5,
+                  command=_open_folder).pack(side="left", padx=6)
+        tk.Button(btn_row, text="Close", font=("Segoe UI", 9),
+                  bg=self.bg_input, fg=self.fg_muted, activebackground="#3a3a44",
+                  activeforeground=self.fg_light, bd=0, padx=14, pady=5,
+                  command=win.destroy).pack(side="left", padx=6)
+
     # Thread-Safe log function
     def log(self, message):
         self.root.after(0, self._safe_log, message)
@@ -614,6 +708,12 @@ class FMGeneratorUI:
         self.console.insert("end", f"{message}\n")
         self.console.see("end")
         self.console.configure(state="disabled")
+        if self.log_path:
+            try:
+                with open(self.log_path, "a", encoding="utf-8") as f:
+                    f.write(message + "\n")
+            except Exception:
+                pass
 
     # Thread-Safe stats update
     def update_stats(self, generated_count, queued_count=0):

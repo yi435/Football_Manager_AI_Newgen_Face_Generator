@@ -10,6 +10,7 @@ env/
 
 # Project-specific ignores
 config.json
+app.log
 exports/*
 !exports/.gitkeep
 graphics/AI Newgen Faces/*

@@ -55,7 +55,10 @@ class ExportWatcher:
         )
         
         self.observer = Observer()
-        self.observer.schedule(event_handler, path=self.watch_dir, recursive=False)
+        # Recursive: the FM26 export plugin writes into a nested
+        # "FM26PlayerExport by vinteset" subfolder, so subdirectories must be
+        # watched too (harmless for FM24 flat exports).
+        self.observer.schedule(event_handler, path=self.watch_dir, recursive=True)
         self.observer.start()
 
     def stop(self):

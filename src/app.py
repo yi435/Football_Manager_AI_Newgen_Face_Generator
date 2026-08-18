@@ -65,7 +65,10 @@ class FMGeneratorApp:
             check_provider_callback=self.check_provider,
             maintenance_callback=self.open_maintenance,
             face_style_callback=self.open_face_style,
-            fm26_callback=self.open_fm26_guide
+            fm26_callback=self.open_fm26_guide,
+            cancel_callback=self.cancel_batch,
+            test_face_callback=self.generate_test_face,
+            log_path=os.path.join(app_root(), "app.log")
         )
         
         # Load configuration into UI
@@ -87,6 +90,7 @@ class FMGeneratorApp:
         
         self.watcher = None
         self.processing_lock = threading.Lock()
+        self.cancel_event = threading.Event()
         self.auto_start_comfyui()
 
     def auto_start_comfyui(self):
@@ -338,16 +342,90 @@ class FMGeneratorApp:
             self.watcher.stop()
             self.watcher = None
 
+    def cancel_batch(self):
+        """
+        Requests cancellation of the current generation batch. Completed faces
+        are kept; the rest are re-queued for the next run via the failed
+        downloads cache.
+        """
+        self.cancel_event.set()
+        self.ui.log("[Action] Cancel requested — finishing current faces, then stopping.")
+
+    def generate_test_face(self, graphics_dir):
+        """
+        Generates one sample face using the current saved face style, to verify
+        the pipeline and preview prompt edits before a full batch. Runs on the
+        caller's thread (UI fires it on a background thread).
+        Returns (image_path_or_None, error_message_or_None).
+        """
+        import tempfile
+        from src.parser import PromptBuilder
+
+        sample = {
+            "uid": "2100000001",
+            "name": "Sample Newgen",
+            "nat": "FRA",
+            "sec_nat": "",
+            "age": "18",
+            "personality": "Model Citizen",
+        }
+        prompt = PromptBuilder.build_prompt(
+            sample, self.config.get("face_style", DEFAULT_CONFIG["face_style"]))
+
+        out_dir = graphics_dir or self.config.get(
+            "graphics_directory", "./graphics/AI Newgen Faces")
+        tmp_dir = tempfile.mkdtemp(prefix="fm_testface_")
+
+        generator = FaceGenerator(
+            tmp_dir,
+            concurrency_limit=1,
+            provider=self.config.get("provider", "comfyui"),
+            comfyui_base_url=self.config.get("comfyui_base_url", "http://127.0.0.1:8188"),
+            comfyui_model=self.config.get("comfyui_model", ""),
+            negative_prompt=self.config.get("comfyui_negative_prompt", ""),
+            steps=self.config.get("comfyui_steps", 25),
+            cfg=self.config.get("comfyui_cfg", 6.0),
+            sampler=self.config.get("comfyui_sampler", "euler"),
+            scheduler=self.config.get("comfyui_scheduler", "karras"),
+            width=self.config.get("comfyui_width", 896),
+            height=self.config.get("comfyui_height", 1152),
+        )
+
+        async def _run():
+            ok, msg = await generator.check_connection()
+            self.ui.log(f"[Test Face] {generator.provider_name}: {msg}")
+            if not ok:
+                return None, "Provider unreachable — test face cannot be generated."
+            async with aiohttp.ClientSession() as session:
+                checkpoint = await generator._resolve_checkpoint(session)
+                res = await generator.download_face(session, sample["uid"], prompt, checkpoint)
+            if res["status"] == "success":
+                return res["file"], None
+            return None, self.translate_error(res.get("error", "Unknown error"))
+
+        try:
+            path, err = asyncio.run(_run())
+            if path:
+                self.ui.log(f"[Test Face] Generated test face: {path}")
+            return path, err
+        except Exception as e:
+            self.ui.log(f"[Error] Test face failed: {e}")
+            return None, f"{type(e).__name__}: {e}"
+
     def run_now(self, watch_dir, graphics_dir):
         """
-        Manually scans for any existing files in watch_dir and processes them.
+        Manually scans for any existing files in watch_dir (recursively, so FM26
+        plugin subfolders are included) and processes them.
         """
         if not os.path.exists(watch_dir):
             self.ui.log(f"[Warning] Watch directory '{watch_dir}' does not exist.")
             return 0
 
-        files = [os.path.join(watch_dir, f) for f in os.listdir(watch_dir) 
-                 if f.lower().endswith(('.rtf', '.html', '.htm', '.txt', '.csv'))]
+        files = []
+        for root, _, filenames in os.walk(watch_dir):
+            for f in filenames:
+                if f.lower().endswith(('.rtf', '.html', '.htm', '.txt', '.csv')):
+                    files.append(os.path.join(root, f))
         
         if not files:
             self.ui.log("[Info] No export files found to process.")
@@ -447,8 +525,10 @@ class FMGeneratorApp:
                     return
 
                 # 4. Generate & Download Faces
+                self.cancel_event.clear()
                 self.ui.log(f"[Info] Preparing to generate {len(players_to_generate)} faces...")
                 self.ui.update_stats(len(existing_mappings), len(players_to_generate))
+                self.ui.set_generating(True)
 
                 provider = self.config.get("provider", "comfyui")
                 generator = FaceGenerator(
@@ -467,9 +547,20 @@ class FMGeneratorApp:
                 )
 
                 # Callback to update UI during download progress
+                batch_start = time.monotonic()
+
                 def on_progress(count, total, result):
                     nonlocal failed_players
-                    self.ui.update_progress(count, total, f"Downloading faces...")
+                    elapsed = time.monotonic() - batch_start
+                    eta = ""
+                    if count > 0 and total > count:
+                        per_face = elapsed / count
+                        eta_seconds = per_face * (total - count)
+                        if eta_seconds < 60:
+                            eta = f"~{int(eta_seconds)}s left"
+                        else:
+                            eta = f"~{int(eta_seconds // 60)}m {int(eta_seconds % 60)}s left"
+                    self.ui.update_progress(count, total, f"Downloading faces ({eta})" if eta else "Downloading faces...")
                     uid = result["uid"]
                     if result["status"] == "success":
                         # Add newly generated face to xml maps
@@ -479,7 +570,10 @@ class FMGeneratorApp:
                         self.ui.update_stats(len(existing_mappings), total - count)
                     else:
                         friendly_error = self.translate_error(result["error"])
-                        self.ui.log(f"[Error] Failed for UID {uid}: {friendly_error}")
+                        if result["status"] == "cancelled":
+                            self.ui.log(f"[Cancel] Skipped UID {uid}")
+                        else:
+                            self.ui.log(f"[Error] Failed for UID {uid}: {friendly_error}")
                         # Save player details to failed downloads queue for future retry
                         p_detail = next((p for p in players_to_generate if p["uid"] == uid), None)
                         if p_detail:
@@ -498,11 +592,21 @@ class FMGeneratorApp:
                     await generator.generate_faces_async(
                         players_to_generate,
                         self.config["face_style"],
-                        on_progress
+                        on_progress,
+                        cancel_check=self.cancel_event.is_set
                     )
                     return True
 
                 generation_succeeded = asyncio.run(_run_generation_checked())
+                was_cancelled = self.cancel_event.is_set()
+                self.ui.set_generating(False)
+
+                if was_cancelled:
+                    # Pending players were never awaited, so they are absent from
+                    # on_progress results — queue any not-yet-mapped face for retry.
+                    for p in players_to_generate:
+                        if p["uid"] not in existing_mappings:
+                            failed_players.setdefault(p["uid"], p)
 
                 # 5. Save XML Maps, Metadata, and Failed Downloads Queue
                 if not generation_succeeded:
@@ -532,7 +636,13 @@ class FMGeneratorApp:
                     self.ui.log(f"[Warning] Failed to save failed_downloads.json: {e}")
 
                 self.ui.log(f"[Success] Completed batch. Total faces mapped: {len(existing_mappings)}")
-                self.ui.update_progress(0, 0, "Complete!")
+
+                if was_cancelled:
+                    self.ui.update_progress(0, 0, "Cancelled")
+                    self.ui.log("[Cancel] Batch cancelled. Completed faces were kept; "
+                                "the rest are queued for the next run.")
+                else:
+                    self.ui.update_progress(0, 0, "Complete!")
 
                 # 6. Trigger Game Auto Reload Skin
                 if self.config["auto_reload_skin_hotkey"]:
