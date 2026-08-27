@@ -666,10 +666,16 @@ class FMGeneratorUI:
             messagebox.showerror("Test Face Failed", "The test face file is missing.")
             return
         try:
-            img = tk.PhotoImage(file=path)
-        except Exception as e:
-            self.log(f"[Error] Could not preview test face: {e}")
-            return
+            from PIL import Image, ImageTk
+            pil_img = Image.open(path)
+            pil_img.thumbnail((360, 460), Image.Resampling.LANCZOS)
+            img = ImageTk.PhotoImage(pil_img)
+        except Exception:
+            try:
+                img = tk.PhotoImage(file=path)
+            except Exception as e:
+                self.log(f"[Error] Could not preview test face: {e}")
+                return
 
         win = tk.Toplevel(self.root)
         win.title("Test Face Preview")
