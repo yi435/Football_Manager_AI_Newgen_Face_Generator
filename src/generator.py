@@ -5,7 +5,10 @@ import asyncio
 import time
 import urllib.parse
 import ssl
-import aiohttp
+try:
+    import aiohttp
+except ImportError:
+    aiohttp = None
 
 try:
     import certifi
@@ -56,7 +59,8 @@ async def wait_for_comfyui(base_url, timeout=120, session=None, cancel_check=Non
 
     deadline = time.monotonic() + timeout
     if session is None:
-        async with aiohttp.ClientSession() as s:
+        connector = aiohttp.TCPConnector(ssl=_SSL_CONTEXT)
+        async with aiohttp.ClientSession(connector=connector) as s:
             return await _loop(s)
     return await _loop(session)
 
@@ -65,7 +69,7 @@ class FaceGenerator:
     def __init__(self, graphics_dir, concurrency_limit=1,
                  provider="comfyui", comfyui_base_url="http://127.0.0.1:8188",
                  comfyui_model="", negative_prompt=DEFAULT_NEGATIVE_PROMPT,
-                 steps=25, cfg=6.0, sampler="euler", scheduler="karras",
+                 steps=25, cfg=6.0, sampler="euler_a", scheduler="karras",
                  width=896, height=1152):
         self.graphics_dir = graphics_dir
         self.semaphore = asyncio.Semaphore(max(1, concurrency_limit))
@@ -75,7 +79,7 @@ class FaceGenerator:
         self.negative_prompt = negative_prompt if negative_prompt else DEFAULT_NEGATIVE_PROMPT
         self.steps = int(steps) if steps else 25
         self.cfg = float(cfg) if cfg else 6.0
-        self.sampler = sampler or "euler"
+        self.sampler = sampler or "euler_a"
         self.scheduler = scheduler or "karras"
         self.width = int(width) if width else 896
         self.height = int(height) if height else 1152
@@ -276,7 +280,8 @@ class FaceGenerator:
         from src.parser import PromptBuilder
 
         self._resolved_checkpoint = None
-        async with aiohttp.ClientSession() as session:
+        connector = aiohttp.TCPConnector(ssl=_SSL_CONTEXT)
+        async with aiohttp.ClientSession(connector=connector) as session:
             # Give an auto-started ComfyUI time to boot before submitting work.
             # The wait itself is cancellable so "Cancel Batch" works even during
             # a cold ComfyUI boot.

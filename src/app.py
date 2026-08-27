@@ -5,7 +5,10 @@ import tkinter as tk
 import asyncio
 import threading
 import time
-import aiohttp
+try:
+    import aiohttp
+except ImportError:
+    aiohttp = None
 from src.ui import FMGeneratorUI
 from src.watcher import ExportWatcher
 from src.parser import PlayerParser
@@ -103,7 +106,7 @@ class FMGeneratorApp:
             self.config.get("comfyui_base_url", "http://127.0.0.1:8188"),
             self.config.get("comfyui_steps", 25),
             self.config.get("comfyui_cfg", 6.0),
-            self.config.get("comfyui_sampler", "euler"),
+            self.config.get("comfyui_sampler", "euler_a"),
             self.config.get("comfyui_scheduler", "karras"),
             self.config.get("comfyui_width", 896),
             self.config.get("comfyui_height", 1152),
@@ -123,7 +126,7 @@ class FMGeneratorApp:
         has to start a server manually. Skips if the server is already up.
         """
         import subprocess
-        if not sys.platform.startswith("win"):
+        if not sys.platform.startswith("win") or aiohttp is None:
             return
         install_dir = self.config.get("comfyui_install_dir", "")
         if not install_dir or not os.path.isdir(install_dir):
@@ -142,7 +145,8 @@ class FMGeneratorApp:
                 launcher = os.path.normpath(os.path.join(clean_install_dir, "run_nvidia_gpu.bat"))
                 if not os.path.isfile(launcher):
                     launcher = os.path.normpath(os.path.join(clean_install_dir, "run_cpu.bat"))
-                if not (os.path.isfile(launcher) and launcher.lower().endswith(".bat") and launcher.startswith(clean_install_dir)):
+                if not (os.path.isfile(launcher) and launcher.lower().endswith(".bat") and
+                        os.path.commonpath([clean_install_dir, launcher]) == clean_install_dir):
                     print("[Warning] ComfyUI launcher not found or invalid path — will not start.")
                 else:
                     # Run the .bat hidden (no console window flashes up) and
@@ -403,7 +407,7 @@ class FMGeneratorApp:
             negative_prompt=self.config.get("comfyui_negative_prompt", ""),
             steps=self.config.get("comfyui_steps", 25),
             cfg=self.config.get("comfyui_cfg", 6.0),
-            sampler=self.config.get("comfyui_sampler", "euler"),
+            sampler=self.config.get("comfyui_sampler", "euler_a"),
             scheduler=self.config.get("comfyui_scheduler", "karras"),
             width=self.config.get("comfyui_width", 896),
             height=self.config.get("comfyui_height", 1152),
@@ -558,7 +562,7 @@ class FMGeneratorApp:
                     negative_prompt=self.config.get("comfyui_negative_prompt", ""),
                     steps=self.config.get("comfyui_steps", 25),
                     cfg=self.config.get("comfyui_cfg", 6.0),
-                    sampler=self.config.get("comfyui_sampler", "euler"),
+                    sampler=self.config.get("comfyui_sampler", "euler_a"),
                     scheduler=self.config.get("comfyui_scheduler", "karras"),
                     width=self.config.get("comfyui_width", 896),
                     height=self.config.get("comfyui_height", 1152)
@@ -580,12 +584,16 @@ class FMGeneratorApp:
                             eta = f"~{int(eta_seconds // 60)}m {int(eta_seconds % 60)}s left"
                     self.ui.update_progress(count, total, f"Downloading faces ({eta})" if eta else "Downloading faces...")
                     uid = result["uid"]
+                    p_detail = next((p for p in players_to_generate if p["uid"] == uid), None)
                     if result["status"] == "success":
                         # Add newly generated face to xml maps
                         existing_mappings[uid] = uid
                         if uid in failed_players:
                             del failed_players[uid]
                         self.ui.update_stats(len(existing_mappings), total - count)
+                        face_path = os.path.join(graphics_dir, f"{uid}.png")
+                        if hasattr(self.ui, "show_latest_face"):
+                            self.ui.show_latest_face(face_path, p_detail)
                     else:
                         friendly_error = self.translate_error(result["error"])
                         if result["status"] == "cancelled":
@@ -676,7 +684,7 @@ class FMGeneratorApp:
         """
         try:
             age = int(age_str)
-        except:
+        except (ValueError, TypeError):
             age = 16
         
         if age < 20:
