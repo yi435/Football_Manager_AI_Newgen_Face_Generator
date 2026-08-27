@@ -13,7 +13,7 @@ class GeneratorTest(unittest.TestCase):
             graphics_dir="./graphics/test",
             concurrency_limit=1
         )
-        self.assertEqual(gen.sampler, "euler_a")
+        self.assertEqual(gen.sampler, "euler_ancestral")
         self.assertEqual(gen.scheduler, "karras")
         self.assertEqual(gen.steps, 25)
         self.assertEqual(gen.cfg, 6.0)
@@ -59,7 +59,8 @@ class GeneratorTest(unittest.TestCase):
         ksampler_inputs = workflow["3"]["inputs"]
         self.assertEqual(ksampler_inputs["steps"], 25)
         self.assertEqual(ksampler_inputs["cfg"], 6.0)
-        self.assertEqual(ksampler_inputs["sampler_name"], "euler_a")
+        # euler_a must be normalized to euler_ancestral for ComfyUI KSampler!
+        self.assertEqual(ksampler_inputs["sampler_name"], "euler_ancestral")
         self.assertEqual(ksampler_inputs["scheduler"], "karras")
         # Deterministic seed derivation from UID
         self.assertEqual(ksampler_inputs["seed"], int(uid) % 2147483647)

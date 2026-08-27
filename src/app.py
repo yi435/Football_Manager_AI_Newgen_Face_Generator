@@ -50,7 +50,7 @@ DEFAULT_CONFIG = {
     "comfyui_negative_prompt": "wrinkles, full body, crossed arms, hands, legs, lower body, background scenery, grass, soccer field, training pitch, trees, crowd, text, brand logos, badges, graphics, distorted logos, deformed crests, deformed apparel, waxy skin, CGI, 3D render, cartoon, illustration, drawing, digital art, makeup, smooth skin, airbrushed, blurred eyes, double chin, out of focus",
     "comfyui_steps": 25,
     "comfyui_cfg": 6.0,
-    "comfyui_sampler": "euler_a",
+    "comfyui_sampler": "euler_ancestral",
     "comfyui_scheduler": "karras",
     "comfyui_width": 896,
     "comfyui_height": 1152,
@@ -106,7 +106,7 @@ class FMGeneratorApp:
             self.config.get("comfyui_base_url", "http://127.0.0.1:8188"),
             self.config.get("comfyui_steps", 25),
             self.config.get("comfyui_cfg", 6.0),
-            self.config.get("comfyui_sampler", "euler_a"),
+            self.config.get("comfyui_sampler", "euler_ancestral"),
             self.config.get("comfyui_scheduler", "karras"),
             self.config.get("comfyui_width", 896),
             self.config.get("comfyui_height", 1152),
@@ -158,6 +158,9 @@ class FMGeneratorApp:
         except Exception as e:
             print(f"[Warning] Could not auto-start ComfyUI: {e}")
 
+        # Show non-blocking loading popup on startup
+        self.ui.show_comfy_loading_popup()
+
         # Background: wait until the server answers (it can take a couple of
         # minutes to boot on first launch) and reflect it in the UI status.
         base = self.config.get("comfyui_base_url", "http://127.0.0.1:8188")
@@ -165,9 +168,11 @@ class FMGeneratorApp:
             from src.generator import wait_for_comfyui
             if asyncio.run(wait_for_comfyui(base, timeout=180)):
                 self.ui.set_provider_status("Connected", "#00b894")
+                self.ui.dismiss_comfy_loading_popup()
                 self.ui.log("[Info] ComfyUI is ready — you can generate now.")
             else:
                 self.ui.set_provider_status("Offline", "#d63031")
+                self.ui.dismiss_comfy_loading_popup()
                 self.ui.log("[Warning] ComfyUI did not come up — click "
                             "'Test Connection' or run Maintenance to repair.")
         threading.Thread(target=_monitor_ready, daemon=True).start()
@@ -333,7 +338,18 @@ class FMGeneratorApp:
             self.ui.log("[Info] Uninstalling local AI engine…")
             threading.Thread(target=self._run_uninstall, daemon=True).start()
 
+        def do_create_shortcut():
+            from src.shortcut import create_desktop_shortcut
+            ok, msg = create_desktop_shortcut()
+            if ok:
+                messagebox.showinfo("Desktop Shortcut", msg)
+                self.ui.log(f"[Success] {msg}")
+            else:
+                messagebox.showwarning("Desktop Shortcut", msg)
+                self.ui.log(f"[Warning] {msg}")
+
         for text, cmd, color in (("Repair Install", do_repair, "#6c5ce7"),
+                                 ("Create Desktop Shortcut", do_create_shortcut, "#00cec9"),
                                  ("Uninstall", do_uninstall, "#d63031")):
             tk.Button(win, text=text, bg=color, fg="#f1f1f5", bd=0, padx=16, pady=6,
                       activebackground="#5848c2", command=cmd).pack(fill="x", padx=20, pady=4)
@@ -407,7 +423,7 @@ class FMGeneratorApp:
             negative_prompt=self.config.get("comfyui_negative_prompt", ""),
             steps=self.config.get("comfyui_steps", 25),
             cfg=self.config.get("comfyui_cfg", 6.0),
-            sampler=self.config.get("comfyui_sampler", "euler_a"),
+            sampler=self.config.get("comfyui_sampler", "euler_ancestral"),
             scheduler=self.config.get("comfyui_scheduler", "karras"),
             width=self.config.get("comfyui_width", 896),
             height=self.config.get("comfyui_height", 1152),
@@ -562,7 +578,7 @@ class FMGeneratorApp:
                     negative_prompt=self.config.get("comfyui_negative_prompt", ""),
                     steps=self.config.get("comfyui_steps", 25),
                     cfg=self.config.get("comfyui_cfg", 6.0),
-                    sampler=self.config.get("comfyui_sampler", "euler_a"),
+                    sampler=self.config.get("comfyui_sampler", "euler_ancestral"),
                     scheduler=self.config.get("comfyui_scheduler", "karras"),
                     width=self.config.get("comfyui_width", 896),
                     height=self.config.get("comfyui_height", 1152)

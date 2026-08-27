@@ -88,7 +88,7 @@ class FMGeneratorUI:
         self.comfy_url_var = tk.StringVar(value="http://127.0.0.1:8188")
         self.steps_var = tk.IntVar(value=25)
         self.cfg_var = tk.DoubleVar(value=6.0)
-        self.sampler_var = tk.StringVar(value="euler_a")
+        self.sampler_var = tk.StringVar(value="euler_ancestral")
         self.scheduler_var = tk.StringVar(value="karras")
         self.width_var = tk.IntVar(value=896)
         self.height_var = tk.IntVar(value=1152)
@@ -102,6 +102,7 @@ class FMGeneratorUI:
         self.is_generating = False
         self.current_preview_path = None
         self._preview_image_ref = None
+        self._loading_popup = None
 
         self._setup_styles()
         self._create_widgets()
@@ -153,7 +154,9 @@ class FMGeneratorUI:
     def _create_widgets(self):
         # Master grid container
         self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(1, weight=1)  # Workspace area stretches
+        self.root.rowconfigure(0, weight=0)  # Header fixed
+        self.root.rowconfigure(1, weight=3)  # Workspace area stretches
+        self.root.rowconfigure(2, weight=2)  # Log frame stretches on window expand
 
         # ---------------------------------------------------------------------
         # 1. TOP HEADER BAR
@@ -411,7 +414,7 @@ class FMGeneratorUI:
         # ---------------------------------------------------------------------
         log_frame = tk.Frame(self.root, bg=self.bg_panel,
                              highlightthickness=1, highlightbackground=self.border_subtle)
-        log_frame.grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 12))
+        log_frame.grid(row=2, column=0, sticky="nsew", padx=16, pady=(0, 12))
 
         # Log Header
         log_hdr = tk.Frame(log_frame, bg=self.bg_panel)
@@ -431,7 +434,7 @@ class FMGeneratorUI:
                   cursor="hand2", command=self._clear_log).pack(side="right")
 
         # ScrolledText Console with Syntax Color Tags
-        self.console = ScrolledText(log_frame, height=6, wrap="word",
+        self.console = ScrolledText(log_frame, height=8, wrap="word",
                                     font=self.font_mono, bg=self.bg_input, fg=self.fg_light,
                                     insertbackground=self.fg_light, bd=0,
                                     highlightthickness=0, padx=8, pady=6)
@@ -582,6 +585,64 @@ class FMGeneratorUI:
     def _safe_set_provider_status(self, text, color):
         c = color or (self.color_success if "connect" in text.lower() else self.color_error)
         self.provider_pill.configure(text=f"● ComfyUI {text}", fg=c)
+        if "connect" in text.lower():
+            self.dismiss_comfy_loading_popup()
+
+    def show_comfy_loading_popup(self):
+        """Shows a non-blocking floating banner while ComfyUI initializes."""
+        def _show():
+            if hasattr(self, "_loading_popup") and self._loading_popup is not None:
+                return
+
+            win = tk.Toplevel(self.root)
+            win.title("Starting AI Engine")
+            win.configure(bg=self.bg_panel)
+            win.geometry("440x200")
+            win.resizable(False, False)
+            win.transient(self.root)
+
+            # Center over main window
+            try:
+                self.root.update_idletasks()
+                rx = self.root.winfo_x()
+                ry = self.root.winfo_y()
+                rw = self.root.winfo_width()
+                rh = self.root.winfo_height()
+                wx = max(0, rx + (rw - 440) // 2)
+                wy = max(0, ry + (rh - 200) // 2)
+                win.geometry(f"440x200+{wx}+{wy}")
+            except Exception:
+                pass
+
+            card = tk.Frame(win, bg=self.bg_panel, padx=20, pady=18)
+            card.pack(fill="both", expand=True)
+
+            tk.Label(card, text="⚙️ Initializing ComfyUI Engine...", font=self.font_title,
+                     fg=self.color_active, bg=self.bg_panel).pack(anchor="w", pady=(0, 6))
+
+            tk.Label(card, text="Starting local AI server and loading RealVisXL model into GPU memory.\nPlease wait a moment on startup...",
+                     font=self.font_body, fg=self.fg_light, bg=self.bg_panel, justify="left").pack(anchor="w", pady=(0, 10))
+
+            tk.Label(card, text="● This window will close automatically once the engine is ready.",
+                     font=self.font_small, fg=self.fg_muted, bg=self.bg_panel).pack(anchor="w", pady=(0, 12))
+
+            tk.Button(card, text="Dismiss (Run in Background)", font=self.font_small_bold,
+                      bg=self.bg_input, fg=self.fg_light, activebackground=self.bg_elevated,
+                      bd=0, padx=14, pady=6, cursor="hand2", command=win.destroy).pack(anchor="e")
+
+            self._loading_popup = win
+        self.root.after(0, _show)
+
+    def dismiss_comfy_loading_popup(self):
+        """Closes the startup loading popup once ComfyUI connects."""
+        def _close():
+            if hasattr(self, "_loading_popup") and self._loading_popup is not None:
+                try:
+                    self._loading_popup.destroy()
+                except Exception:
+                    pass
+                self._loading_popup = None
+        self.root.after(0, _close)
 
     def set_watch_directory(self, path):
         self.watch_path_var.set(path)
@@ -837,7 +898,7 @@ class FMGeneratorUI:
         _param_row(grid_f, 1, "Sampling Steps (Quality):", self.steps_var, from_=10, to_=60, inc=1)
         _param_row(grid_f, 2, "CFG Guidance Scale:", self.cfg_var, from_=1.0, to_=20.0, inc=0.5)
         _param_row(grid_f, 3, "Sampler Algorithm:", self.sampler_var, widget_type="combo",
-                   values=["euler_a", "euler", "dpmpp_2m", "dpmpp_2m_sde", "dpmpp_sde", "lms", "heun", "ddim"])
+                   values=["euler_ancestral", "euler", "dpmpp_2m", "dpmpp_2m_sde", "dpmpp_sde", "lms", "heun", "ddim"])
         _param_row(grid_f, 4, "Scheduler:", self.scheduler_var, widget_type="combo",
                    values=["karras", "normal", "simple", "ddim_uniform", "sgm_uniform", "beta"])
         _param_row(grid_f, 5, "Resolution Width (px):", self.width_var, from_=512, to_=1536, inc=64)
@@ -957,7 +1018,7 @@ class FMGeneratorUI:
 
     def load_config(self, watch_dir, graphics_dir, auto_reload, provider="comfyui",
                     comfyui_base_url="http://127.0.0.1:8188",
-                    steps=25, cfg=6.0, sampler="euler_a", scheduler="karras",
+                    steps=25, cfg=6.0, sampler="euler_ancestral", scheduler="karras",
                     width=896, height=1152, concurrency_limit=1,
                     show_advanced=False):
         self.watch_path_var.set(watch_dir or "./exports")
@@ -966,7 +1027,7 @@ class FMGeneratorUI:
         self.comfy_url_var.set(comfyui_base_url or "http://127.0.0.1:8188")
         self.steps_var.set(steps if steps else 25)
         self.cfg_var.set(cfg if cfg else 6.0)
-        self.sampler_var.set(sampler if sampler else "euler_a")
+        self.sampler_var.set(sampler if sampler else "euler_ancestral")
         self.scheduler_var.set(scheduler if scheduler else "karras")
         self.width_var.set(width if width else 896)
         self.height_var.set(height if height else 1152)

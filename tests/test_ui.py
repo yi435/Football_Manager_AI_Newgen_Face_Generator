@@ -29,7 +29,7 @@ class UITest(unittest.TestCase):
     def test_ui_initialization_defaults(self):
         self.assertEqual(self.ui.watch_path_var.get(), "./exports")
         self.assertEqual(self.ui.graphics_path_var.get(), "./graphics/AI Newgen Faces")
-        self.assertEqual(self.ui.sampler_var.get(), "euler_a")
+        self.assertEqual(self.ui.sampler_var.get(), "euler_ancestral")
         self.assertEqual(self.ui.concurrency_var.get(), 1)
         self.assertFalse(self.ui.watcher_running)
 
@@ -79,6 +79,20 @@ class UITest(unittest.TestCase):
         self.assertEqual(tokens.spacing.unit, 4)
         self.assertEqual(self.ui.bg_dark, "#121214")
         self.assertEqual(self.ui.color_accent, "#6c5ce7")
+
+    def test_comfy_loading_popup_lifecycle(self):
+        self.ui.show_comfy_loading_popup()
+        self.root.update()
+        self.assertIsNotNone(self.ui._loading_popup)
+
+        self.ui.dismiss_comfy_loading_popup()
+        self.root.update()
+        self.assertIsNone(self.ui._loading_popup)
+
+    def test_desktop_shortcut_helper(self):
+        from src.shortcut import get_desktop_path
+        path = get_desktop_path()
+        self.assertTrue(isinstance(path, str) and len(path) > 0)
 
 
 if __name__ == "__main__":

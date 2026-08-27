@@ -65,11 +65,47 @@ async def wait_for_comfyui(base_url, timeout=120, session=None, cancel_check=Non
     return await _loop(session)
 
 
+COMFY_SAMPLER_NAMES = {
+    "euler_a": "euler_ancestral",
+    "euler-a": "euler_ancestral",
+    "eulera": "euler_ancestral",
+    "euler_ancestral": "euler_ancestral",
+    "euler": "euler",
+    "dpmpp_2m": "dpmpp_2m",
+    "dpmpp_2m_sde": "dpmpp_2m_sde",
+    "dpmpp_2m_sde_gpu": "dpmpp_2m_sde_gpu",
+    "dpmpp_sde": "dpmpp_sde",
+    "dpmpp_sde_gpu": "dpmpp_sde_gpu",
+    "dpmpp_2s_ancestral": "dpmpp_2s_ancestral",
+    "dpmpp_3m_sde": "dpmpp_3m_sde",
+    "dpm_2": "dpm_2",
+    "dpm_2_ancestral": "dpm_2_ancestral",
+    "heun": "heun",
+    "heunpp2": "heunpp2",
+    "lms": "lms",
+    "ddim": "ddim",
+    "uni_pc": "uni_pc",
+    "uni_pc_bh2": "uni_pc_bh2",
+    "ddpm": "ddpm",
+    "lcm": "lcm",
+}
+
+COMFY_SCHEDULER_NAMES = {
+    "karras": "karras",
+    "normal": "normal",
+    "simple": "simple",
+    "ddim_uniform": "ddim_uniform",
+    "sgm_uniform": "sgm_uniform",
+    "beta": "beta",
+    "exponential": "exponential",
+}
+
+
 class FaceGenerator:
     def __init__(self, graphics_dir, concurrency_limit=1,
                  provider="comfyui", comfyui_base_url="http://127.0.0.1:8188",
                  comfyui_model="", negative_prompt=DEFAULT_NEGATIVE_PROMPT,
-                 steps=25, cfg=6.0, sampler="euler_a", scheduler="karras",
+                 steps=25, cfg=6.0, sampler="euler_ancestral", scheduler="karras",
                  width=896, height=1152):
         self.graphics_dir = graphics_dir
         self.semaphore = asyncio.Semaphore(max(1, concurrency_limit))
@@ -79,7 +115,7 @@ class FaceGenerator:
         self.negative_prompt = negative_prompt if negative_prompt else DEFAULT_NEGATIVE_PROMPT
         self.steps = int(steps) if steps else 25
         self.cfg = float(cfg) if cfg else 6.0
-        self.sampler = sampler or "euler_a"
+        self.sampler = sampler or "euler_ancestral"
         self.scheduler = scheduler or "karras"
         self.width = int(width) if width else 896
         self.height = int(height) if height else 1152
@@ -136,6 +172,9 @@ class FaceGenerator:
         The seed is derived from the player UID so faces stay consistent
         across age milestones (same face structure, updated details).
         """
+        sampler_name = COMFY_SAMPLER_NAMES.get(str(self.sampler).lower().strip(), "euler_ancestral")
+        scheduler_name = COMFY_SCHEDULER_NAMES.get(str(self.scheduler).lower().strip(), "karras")
+
         return {
             "4": {"class_type": "CheckpointLoaderSimple",
                   "inputs": {"ckpt_name": checkpoint}},
@@ -150,8 +189,8 @@ class FaceGenerator:
                       "seed": self._seed_for(uid),
                       "steps": self.steps,
                       "cfg": self.cfg,
-                      "sampler_name": self.sampler,
-                      "scheduler": self.scheduler,
+                      "sampler_name": sampler_name,
+                      "scheduler": scheduler_name,
                       "denoise": 1.0,
                       "model": ["4", 0],
                       "positive": ["6", 0],
@@ -249,25 +288,54 @@ class FaceGenerator:
     async def _resolve_checkpoint(self, session):
         """
         Picks the SDXL checkpoint to use:
-        - Use the one configured in config.json if set.
-        - Otherwise auto-detect the first checkpoint available in ComfyUI.
+        - Query ComfyUI /object_info/CheckpointLoaderSimple for actual available models.
+        - If self.comfyui_model is in the list, use it.
+        - If not in list, find best match (e.g. realvis, sdxl) or use the first available model.
+        - Prevents HTTP 400 node_errors on Node 4 (value_not_in_list).
         """
-        if self.comfyui_model:
-            self._resolved_checkpoint = self.comfyui_model
-            return self.comfyui_model
+        if self._resolved_checkpoint:
+            return self._resolved_checkpoint
 
+        available = []
         try:
             async with session.get(
                     f"{self.comfyui_base_url}/object_info/CheckpointLoaderSimple",
-                    timeout=30) as resp:
-                info = await resp.json()
-            names = info["CheckpointLoaderSimple"]["input"]["required"]["ckpt_name"][0]
-            checkpoint = names[0] if names else "RealVisXL_V5.0_fp16.safetensors"
+                    timeout=15) as resp:
+                if resp.status == 200:
+                    info = await resp.json()
+                    available = info.get("CheckpointLoaderSimple", {}).get("input", {}).get("required", {}).get("ckpt_name", [[]])[0]
         except Exception:
-            checkpoint = "RealVisXL_V5.0_fp16.safetensors"
+            available = []
 
-        self._resolved_checkpoint = checkpoint
-        return checkpoint
+        if available:
+            # 1. Exact match
+            if self.comfyui_model and self.comfyui_model in available:
+                self._resolved_checkpoint = self.comfyui_model
+                return self.comfyui_model
+
+            # 2. Case-insensitive or basename match with configured model
+            if self.comfyui_model:
+                target = self.comfyui_model.lower().strip()
+                target_base = os.path.basename(target)
+                for name in available:
+                    if target in name.lower() or target_base == os.path.basename(name).lower():
+                        self._resolved_checkpoint = name
+                        return name
+
+            # 3. Preference for RealVis / SDXL models
+            for name in available:
+                if "realvis" in name.lower() or "sdxl" in name.lower():
+                    self._resolved_checkpoint = name
+                    return name
+
+            # 4. Fallback to first available model
+            self._resolved_checkpoint = available[0]
+            return available[0]
+
+        # 5. Default fallback if ComfyUI object_info was unreachable
+        fallback = self.comfyui_model or "RealVisXL_V5.0_fp16.safetensors"
+        self._resolved_checkpoint = fallback
+        return fallback
 
     async def generate_faces_async(self, players_to_generate, prompt_template, progress_callback=None, cancel_check=None):
         """

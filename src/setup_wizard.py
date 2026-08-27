@@ -607,7 +607,7 @@ class SetupWizard:
             "comfyui_negative_prompt": "wrinkles, full body, crossed arms, hands, legs, lower body, background scenery, grass, soccer field, training pitch, trees, crowd, text, brand logos, badges, graphics, distorted logos, deformed crests, deformed apparel, waxy skin, CGI, 3D render, cartoon, illustration, drawing, digital art, makeup, smooth skin, airbrushed, blurred eyes, double chin, out of focus",
             "comfyui_steps": 25,
             "comfyui_cfg": 6.0,
-            "comfyui_sampler": "euler_a",
+            "comfyui_sampler": "euler_ancestral",
             "comfyui_scheduler": "karras",
             "comfyui_width": 896,
             "comfyui_height": 1152,
@@ -621,6 +621,11 @@ class SetupWizard:
         os.replace(tmp_file, cfg_file)
 
     def _finish(self):
+        try:
+            from src.shortcut import create_desktop_shortcut
+            create_desktop_shortcut()
+        except Exception:
+            pass
         self.status_lbl.config(
             text="Setup complete. Launching ComfyUI and the generator…",
             fg=self.color_success)

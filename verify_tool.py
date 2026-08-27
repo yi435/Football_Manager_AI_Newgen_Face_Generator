@@ -79,7 +79,7 @@ async def run_verification():
         negative_prompt=config.get("comfyui_negative_prompt", ""),
         steps=config.get("comfyui_steps", 25),
         cfg=config.get("comfyui_cfg", 6.0),
-        sampler=config.get("comfyui_sampler", "euler_a"),
+        sampler=config.get("comfyui_sampler", "euler_ancestral"),
         scheduler=config.get("comfyui_scheduler", "karras"),
         width=config.get("comfyui_width", 896),
         height=config.get("comfyui_height", 1152)
