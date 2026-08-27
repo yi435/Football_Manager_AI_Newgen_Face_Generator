@@ -18,12 +18,16 @@ except ImportError:
     ImageTk = None
 
 
+from src.design import DesignTokens
+
+
 class FMGeneratorUI:
     def __init__(self, root, start_callback, stop_callback, save_config_callback,
                  run_now_callback, check_provider_callback=None,
                  maintenance_callback=None, face_style_callback=None,
                  fm26_callback=None, cancel_callback=None,
-                 test_face_callback=None, log_path=None):
+                 test_face_callback=None, log_path=None,
+                 design_tokens=None):
         self.root = root
         self.start_callback = start_callback
         self.stop_callback = stop_callback
@@ -37,38 +41,42 @@ class FMGeneratorUI:
         self.test_face_callback = test_face_callback
         self.log_path = log_path
 
+        # Live Design System Tokens (Loaded directly from DESIGN.md)
+        self.tokens = design_tokens or DesignTokens.load()
+
         # Window Settings (DESKTOP-APP.md Archetype)
-        self.root.title("FM AI Newgen Generator")
+        self.root.title(self.tokens.name)
         self.root.geometry("980x760")
         self.root.minsize(920, 680)
 
-        # Design Tokens (DESIGN.md specification)
-        self.bg_dark = "#121214"
-        self.bg_panel = "#1a1a1e"
-        self.bg_elevated = "#222228"
-        self.bg_input = "#26262b"
-        self.border_subtle = "#2e2e38"
-        self.border_focus = "#6c5ce7"
-        self.fg_light = "#f1f1f5"
-        self.fg_muted = "#a5a5b5"
-        self.fg_dim = "#636375"
-        self.color_accent = "#6c5ce7"
-        self.color_accent_hover = "#5b4bc4"
-        self.color_success = "#00b894"
-        self.color_warning = "#fdcb6e"
-        self.color_error = "#d63031"
-        self.color_active = "#00cec9"
+        # Dynamic Theme Color Tokens
+        self.bg_dark = self.tokens.colors.background
+        self.bg_panel = self.tokens.colors.surface
+        self.bg_elevated = self.tokens.colors.surface_elevated
+        self.bg_input = self.tokens.colors.surface_input
+        self.border_subtle = self.tokens.colors.border
+        self.border_focus = self.tokens.colors.border_focus
+        self.fg_light = self.tokens.colors.text_primary
+        self.fg_muted = self.tokens.colors.text_secondary
+        self.fg_dim = self.tokens.colors.text_disabled
+        self.color_accent = self.tokens.colors.primary
+        self.color_accent_hover = self.tokens.colors.primary_hover
+        self.color_success = self.tokens.colors.success
+        self.color_warning = self.tokens.colors.warning
+        self.color_error = self.tokens.colors.danger
+        self.color_active = self.tokens.colors.active
 
-        # Fonts Hierarchy
-        self.font_title = ("Segoe UI", 13, "bold")
-        self.font_subtitle = ("Segoe UI", 8, "normal")
-        self.font_header = ("Segoe UI", 10, "bold")
-        self.font_body = ("Segoe UI", 9, "normal")
-        self.font_body_bold = ("Segoe UI", 9, "bold")
-        self.font_small = ("Segoe UI", 8, "normal")
-        self.font_small_bold = ("Segoe UI", 8, "bold")
-        self.font_mono = ("Consolas", 8, "normal")
-        self.font_stat_val = ("Segoe UI", 15, "bold")
+        # Typography Tokens
+        self.font_title = self.tokens.fonts.title
+        self.font_subtitle = self.tokens.fonts.subtitle
+        self.font_header = self.tokens.fonts.header
+        self.font_body = self.tokens.fonts.body
+        self.font_body_bold = self.tokens.fonts.body_bold
+        self.font_small = self.tokens.fonts.small
+        self.font_small_bold = self.tokens.fonts.small_bold
+        self.font_mono = self.tokens.fonts.mono
+        self.font_stat_val = self.tokens.fonts.stat
+        self.spacing = self.tokens.spacing
 
         self.root.configure(bg=self.bg_dark)
 
@@ -693,7 +701,8 @@ class FMGeneratorUI:
         win.title("Generated Face Preview")
         win.configure(bg=self.bg_dark)
         win.geometry("440x560")
-        win.resizable(False, False)
+        win.minsize(440, 560)
+        win.resizable(True, True)
 
         tk.Label(win, text="Generated Newgen Face", font=self.font_header,
                  fg=self.fg_light, bg=self.bg_dark).pack(pady=(14, 4))

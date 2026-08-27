@@ -70,6 +70,16 @@ class UITest(unittest.TestCase):
         self.root.update()
         self.assertEqual(self.ui.btn_cancel.cget("state"), "disabled")
 
+    def test_design_tokens_loading(self):
+        from src.design import DesignTokens
+        tokens = DesignTokens.load()
+        self.assertEqual(tokens.colors.primary, "#6c5ce7")
+        self.assertEqual(tokens.colors.background, "#121214")
+        self.assertEqual(tokens.interface_type, "desktop-app")
+        self.assertEqual(tokens.spacing.unit, 4)
+        self.assertEqual(self.ui.bg_dark, "#121214")
+        self.assertEqual(self.ui.color_accent, "#6c5ce7")
+
 
 if __name__ == "__main__":
     unittest.main()

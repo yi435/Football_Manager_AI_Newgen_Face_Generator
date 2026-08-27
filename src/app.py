@@ -727,10 +727,7 @@ class FMGeneratorApp:
             self.ui.log("[Info] Auto-reload skin hotkey is only supported on Windows. Please press Shift + R manually in FM.")
 
     def translate_error(self, error_str):
-        """
-        Translates raw network exceptions or HTTP codes into clean user-facing explanations.
-        """
-        if "ComfyUI is not running" in error_str:
+        if "ComfyUI not running" in error_str or "ComfyUI is not running" in error_str:
             return "ComfyUI not running (Start ComfyUI, then run 'Check Provider Connection' to verify)"
         elif "ComfyUI rejected request" in error_str or "did not return a prompt_id" in error_str:
             return f"{error_str} (The ComfyUI workflow may be invalid or needs the FLUX/GTA nodes)"
