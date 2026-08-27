@@ -3,6 +3,7 @@ import sys
 import json
 import threading
 import tkinter as tk
+from PIL import Image, ImageTk
 from tkinter import filedialog, ttk, messagebox
 from tkinter.scrolledtext import ScrolledText
 
@@ -672,7 +673,9 @@ class FMGeneratorUI:
             img = ImageTk.PhotoImage(pil_img)
         except Exception:
             try:
-                img = tk.PhotoImage(file=path)
+                pil_img = Image.open(path)
+                pil_img.thumbnail((350, 450))
+                img = ImageTk.PhotoImage(pil_img)
             except Exception as e:
                 self.log(f"[Error] Could not preview test face: {e}")
                 return
