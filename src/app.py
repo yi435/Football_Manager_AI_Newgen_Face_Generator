@@ -5,18 +5,41 @@ import tkinter as tk
 import asyncio
 import threading
 import time
+import aiohttp
 from src.ui import FMGeneratorUI
 from src.watcher import ExportWatcher
 from src.parser import PlayerParser
 from src.generator import FaceGenerator
 from src.xml_manager import XMLManager
 
+
+def atomic_json_dump(data, target_path):
+    """
+    Atomically writes JSON data to target_path using a temporary file and os.replace
+    to prevent file truncation or corruption if interrupted.
+    """
+    target_dir = os.path.dirname(os.path.abspath(target_path))
+    os.makedirs(target_dir, exist_ok=True)
+    tmp_path = f"{target_path}.tmp.{os.getpid()}"
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        os.replace(tmp_path, target_path)
+    except Exception:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+        raise
+
+
 # Default configuration template
 DEFAULT_CONFIG = {
     "watch_directory": "./exports",
     "graphics_directory": "./graphics/AI Newgen Faces",
     "face_style": "professional sports media day headshot portrait of a [AGE]-year-old male [NATIONALITY] football player, [PERSONALITY], clean blank unbranded solid-color v-neck athletic shirt, direct frontal view, head and shoulders, looking directly into camera, neutral expression, isolated on a plain solid white studio background, high-key studio lighting, shot on 85mm portrait lens, f/4, sharp focus on eyes, highly detailed, photorealistic, realistic skin texture, visible pores, real life photo",
-    "concurrency_limit": 5,
+    "concurrency_limit": 1,
     "auto_reload_skin_hotkey": False,
     "provider": "comfyui",
     "comfyui_base_url": "http://127.0.0.1:8188",
@@ -24,7 +47,7 @@ DEFAULT_CONFIG = {
     "comfyui_negative_prompt": "wrinkles, full body, crossed arms, hands, legs, lower body, background scenery, grass, soccer field, training pitch, trees, crowd, text, brand logos, badges, graphics, distorted logos, deformed crests, deformed apparel, waxy skin, CGI, 3D render, cartoon, illustration, drawing, digital art, makeup, smooth skin, airbrushed, blurred eyes, double chin, out of focus",
     "comfyui_steps": 25,
     "comfyui_cfg": 6.0,
-    "comfyui_sampler": "euler",
+    "comfyui_sampler": "euler_a",
     "comfyui_scheduler": "karras",
     "comfyui_width": 896,
     "comfyui_height": 1152,
@@ -106,28 +129,26 @@ class FMGeneratorApp:
         if not install_dir or not os.path.isdir(install_dir):
             return
         try:
-            import aiohttp
             base = self.config.get("comfyui_base_url", "http://127.0.0.1:8188")
             async def _ping():
                 async with aiohttp.ClientSession() as s:
                     try:
-                        async with s.get(f"{base}/system_stats", timeout=3,
-                                         ssl=False) as r:
+                        async with s.get(f"{base}/system_stats", timeout=3) as r:
                             return r.status == 200
                     except Exception:
                         return False
             if not asyncio.run(_ping()):
-                launcher = os.path.join(install_dir, "run_nvidia_gpu.bat")
-                if not os.path.exists(launcher):
-                    launcher = os.path.join(install_dir, "run_cpu.bat")
-                if not os.path.exists(launcher):
-                    print("[Warning] ComfyUI launcher not found — will not start.")
+                clean_install_dir = os.path.abspath(install_dir)
+                launcher = os.path.normpath(os.path.join(clean_install_dir, "run_nvidia_gpu.bat"))
+                if not os.path.isfile(launcher):
+                    launcher = os.path.normpath(os.path.join(clean_install_dir, "run_cpu.bat"))
+                if not (os.path.isfile(launcher) and launcher.lower().endswith(".bat") and launcher.startswith(clean_install_dir)):
+                    print("[Warning] ComfyUI launcher not found or invalid path — will not start.")
                 else:
                     # Run the .bat hidden (no console window flashes up) and
                     # detached, so it keeps running on its own. Explicitly
-                    # invoke cmd /c so the batch path is never parsed as a
-                    # shell command line (no injection via a tampered config).
-                    subprocess.Popen(["cmd", "/c", launcher], cwd=install_dir,
+                    # invoke cmd /c with validated absolute path.
+                    subprocess.Popen(["cmd", "/c", launcher], cwd=clean_install_dir,
                                      creationflags=subprocess.CREATE_NO_WINDOW)
                     print(f"[Info] Auto-started embedded ComfyUI from {launcher}")
         except Exception as e:
@@ -159,8 +180,7 @@ class FMGeneratorApp:
             data = {}
             # Create default config.json on first launch (next to the exe/app)
             try:
-                with open(self.config_path, "w", encoding="utf-8") as f:
-                    json.dump(DEFAULT_CONFIG, f, indent=2)
+                atomic_json_dump(DEFAULT_CONFIG, self.config_path)
             except Exception as e:
                 print(f"Error initializing config.json: {e}")
         # Merge keys to ensure compatibility
@@ -189,8 +209,7 @@ class FMGeneratorApp:
                 if v is not None:
                     self.config[k] = v
         try:
-            with open(self.config_path, "w", encoding="utf-8") as f:
-                json.dump(self.config, f, indent=2)
+            atomic_json_dump(self.config, self.config_path)
         except Exception as e:
             self.ui.log(f"[Error] Failed to save config.json: {e}")
 
@@ -212,8 +231,7 @@ class FMGeneratorApp:
             self.config["face_style"] = positive
             self.config["comfyui_negative_prompt"] = negative
             try:
-                with open(self.config_path, "w", encoding="utf-8") as f:
-                    json.dump(self.config, f, indent=2)
+                atomic_json_dump(self.config, self.config_path)
                 self.ui.log("[Info] Face style saved — new faces will use it.")
             except Exception as e:
                 self.ui.log(f"[Error] Failed to save face style: {e}")
@@ -615,8 +633,7 @@ class FMGeneratorApp:
                     for p in players_to_generate:
                         failed_players.setdefault(p["uid"], p)
                     try:
-                        with open(failed_downloads_path, "w", encoding="utf-8") as f:
-                            json.dump(failed_players, f, indent=2)
+                        atomic_json_dump(failed_players, failed_downloads_path)
                     except Exception as e:
                         self.ui.log(f"[Warning] Failed to save failed_downloads.json: {e}")
                     self.ui.log(f"[Cache] Queued {len(failed_players)} players for retry when the provider is available.")
@@ -624,12 +641,13 @@ class FMGeneratorApp:
                     return
 
                 xml_manager.save_mappings(existing_mappings)
-                with open(metadata_path, "w", encoding="utf-8") as f:
-                    json.dump(player_milestones, f, indent=2)
-                
                 try:
-                    with open(failed_downloads_path, "w", encoding="utf-8") as f:
-                        json.dump(failed_players, f, indent=2)
+                    atomic_json_dump(player_milestones, metadata_path)
+                except Exception as e:
+                    self.ui.log(f"[Warning] Failed to save metadata.json: {e}")
+
+                try:
+                    atomic_json_dump(failed_players, failed_downloads_path)
                     if failed_players:
                         self.ui.log(f"[Cache] Saved {len(failed_players)} failed downloads to queue for retry next time.")
                 except Exception as e:

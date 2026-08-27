@@ -9,7 +9,8 @@ class XMLManager:
     def load_mappings(self):
         """
         Reads the config.xml file and returns a dictionary of mappings: {player_uid: image_filename}
-        Uses robust regex parsing to prevent XML structure errors from crashing the load process.
+        Uses robust regex parsing matching both attribute orderings (from...to and to...from)
+        and normalizing path separators.
         """
         mappings = {}
         if not os.path.exists(self.config_path):
@@ -19,18 +20,28 @@ class XMLManager:
             with open(self.config_path, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
 
-            # Find all <record from="..." to="..."/> entries.
-            # Handles different spacing, quotes, and case-insensitivity.
-            pattern = re.compile(r'<record\s+from=["\']([^"\']+)["\']\s+to=["\']([^"\']+)["\']\s*/?>', re.IGNORECASE)
+            # Find all <record from="..." to="..."/> or <record to="..." from="..."/> entries.
+            pattern = re.compile(
+                r'<record\s+(?:from=["\'](?P<from1>[^"\']+)["\']\s+to=["\'](?P<to1>[^"\']+)["\']|'
+                r'to=["\'](?P<to2>[^"\']+)["\']\s+from=["\'](?P<from2>[^"\']+)["\'])\s*/?>',
+                re.IGNORECASE
+            )
             for match in pattern.finditer(content):
-                from_val = match.group(1)
-                to_val = match.group(2)
-                
-                # Extract the UID from the target path: "graphics/pictures/person/r-{UID}/portrait"
-                parts = to_val.split("/")
+                from_val = match.group("from1") or match.group("from2")
+                to_val = match.group("to1") or match.group("to2")
+
+                if not from_val or not to_val:
+                    continue
+
+                # Normalize target path: "graphics/pictures/person/r-{UID}/portrait"
+                norm_to = to_val.replace("\\", "/").strip("/")
+                parts = norm_to.split("/")
                 if len(parts) >= 4:
-                    uid = parts[3].replace("r-", "")
-                    mappings[uid] = from_val
+                    raw_uid = parts[3]
+                    if raw_uid.startswith("r-"):
+                        raw_uid = raw_uid[2:]
+                    if raw_uid:
+                        mappings[raw_uid] = from_val
         except Exception as e:
             print(f"Error reading config.xml: {e}. Starting with empty mappings.")
         
@@ -38,8 +49,8 @@ class XMLManager:
 
     def save_mappings(self, mappings):
         """
-        Writes the mappings dictionary back to config.xml using a clean,
-        bulletproof template that matches the community standard (NewGAN/fmXML).
+        Writes the mappings dictionary back to config.xml using atomic replacement
+        and the community standard format (NewGAN/fmXML).
         """
         # Ensure target graphics directories exist
         os.makedirs(self.graphics_dir, exist_ok=True)
@@ -64,8 +75,18 @@ class XMLManager:
         lines.append("</record>")
 
         clean_xml = "\n".join(lines)
-        with open(self.config_path, "w", encoding="utf-8") as f:
-            f.write(clean_xml)
+        tmp_path = f"{self.config_path}.tmp.{os.getpid()}"
+        try:
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                f.write(clean_xml)
+            os.replace(tmp_path, self.config_path)
+        except Exception:
+            if os.path.exists(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except OSError:
+                    pass
+            raise
 
     def add_mapping(self, uid, filename):
         """

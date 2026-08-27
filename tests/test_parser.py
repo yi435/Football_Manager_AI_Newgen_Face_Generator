@@ -14,7 +14,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.parser import PlayerParser
+from src.parser import PlayerParser, PromptBuilder
+from src.xml_manager import XMLManager
 
 
 class ParserTest(unittest.TestCase):
@@ -54,6 +55,30 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(players[0]["name"], "Ruben Silva")
         self.assertEqual(players[0]["nat"], "FRA")
         self.assertEqual(players[0]["personality"], "Professional")
+
+    def test_2nd_nat_column_precedence(self):
+        # When 2nd Nat appears before Nat, primary Nat must NOT be overwritten by 2nd Nat!
+        csv_text = (
+            "ID;Player;2nd Nat;Nat;Age;Personality\n"
+            "2000000010;Alexandre Diallo;SEN;FRA;18;Model Citizen\n"
+        )
+        path = self._write("second_nat_first.csv", csv_text)
+        players = PlayerParser.parse_file(path)
+        self.assertEqual(len(players), 1)
+        self.assertEqual(players[0]["nat"], "FRA")
+        self.assertEqual(players[0]["sec_nat"], "SEN")
+
+    def test_word_boundary_id_matching(self):
+        # Ensure column named 'Paid' or 'Valid' or 'Hidden' is not misidentified as ID column
+        csv_text = (
+            "Player;Paid;Valid;Age;Personality;ID\n"
+            "Marcus;Yes;True;19;Jovial;2000000020\n"
+        )
+        path = self._write("word_boundary.csv", csv_text)
+        players = PlayerParser.parse_file(path)
+        self.assertEqual(len(players), 1)
+        self.assertEqual(players[0]["uid"], "2000000020")
+        self.assertEqual(players[0]["name"], "Marcus")
 
     def test_csv_with_bom_bytes(self):
         data = ("\ufeffID;Player;Nation;Age;Personality\n"
@@ -113,6 +138,93 @@ class ParserTest(unittest.TestCase):
         path = self._write("empty.csv", "ID;Player\n")
         players = PlayerParser.parse_file(path)
         self.assertEqual(players, [])
+
+    def test_input_sanitization(self):
+        csv_text = "ID;Player;Nation;Age;Personality\n2000000099;Bad\tName\r\nWith\x00Controls;FRA;17;Model\nCitizen\n"
+        path = self._write("sanitize.csv", csv_text)
+        players = PlayerParser.parse_file(path)
+        self.assertEqual(len(players), 1)
+        self.assertNotIn("\x00", players[0]["name"])
+        self.assertNotIn("\r", players[0]["name"])
+        self.assertNotIn("\n", players[0]["name"])
+
+
+class PromptBuilderTest(unittest.TestCase):
+    def test_isolated_rng_and_safe_replacement(self):
+        player_under_20 = {
+            "uid": "2000000001",
+            "name": "Jean Dupont",
+            "nat": "FRA",
+            "sec_nat": "",
+            "age": "17",
+            "personality": "Model Citizen"
+        }
+        template = "photo of a [AGE]-year-old male [NATIONALITY] football player, [PERSONALITY]"
+        
+        prompt1 = PromptBuilder.build_prompt(player_under_20, template)
+        prompt2 = PromptBuilder.build_prompt(player_under_20, template)
+        
+        # Must be completely deterministic for the same UID
+        self.assertEqual(prompt1, prompt2)
+        # Must replace 'male' with 'teenage male' safely
+        self.assertIn("teenage male", prompt1)
+        self.assertIn("youth academy soccer player", prompt1)
+        self.assertIn("17-year-old", prompt1)
+        self.assertIn("French", prompt1)
+
+    def test_female_word_not_corrupted(self):
+        player = {
+            "uid": "2000000002",
+            "name": "Alex Morgan",
+            "nat": "USA",
+            "sec_nat": "",
+            "age": "18",
+            "personality": "Balanced"
+        }
+        template = "photo of a [AGE]-year-old female [NATIONALITY] player, [PERSONALITY]"
+        prompt = PromptBuilder.build_prompt(player, template)
+        # 'female' must NOT become 'feteenage male'
+        self.assertIn("female", prompt)
+        self.assertNotIn("feteenage male", prompt)
+
+
+class XMLManagerTest(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dir = self._tmp.name
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_bidirectional_attribute_reading_and_atomic_save(self):
+        xml_content = """<record>
+            <boolean id="preload" value="false"/>
+            <boolean id="amap" value="false"/>
+            <list id="maps">
+                <record from="2000000001" to="graphics/pictures/person/r-2000000001/portrait"/>
+                <record to="graphics/pictures/person/r-2000000002/portrait" from="2000000002"/>
+                <record to="graphics\\pictures\\person\\r-2000000003\\portrait" from="2000000003"/>
+            </list>
+        </record>"""
+        config_path = os.path.join(self.dir, "config.xml")
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write(xml_content)
+
+        mgr = XMLManager(self.dir)
+        mappings = mgr.load_mappings()
+        
+        self.assertEqual(len(mappings), 3)
+        self.assertEqual(mappings["2000000001"], "2000000001")
+        self.assertEqual(mappings["2000000002"], "2000000002")
+        self.assertEqual(mappings["2000000003"], "2000000003")
+
+        # Test adding and saving
+        mappings["2000000004"] = "2000000004"
+        mgr.save_mappings(mappings)
+
+        new_mappings = mgr.load_mappings()
+        self.assertEqual(len(new_mappings), 4)
+        self.assertEqual(new_mappings["2000000004"], "2000000004")
 
 
 if __name__ == "__main__":

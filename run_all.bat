@@ -8,13 +8,16 @@ echo.
 
 :: 1. Launch ComfyUI in a new window
 echo Starting ComfyUI server in the background...
-if exist "%USERPROFILE%\ComfyUI\run_nvidia_gpu.bat" (
+if exist "%LOCALAPPDATA%\FM Newgen Generator\ComfyUI_windows_portable\run_nvidia_gpu.bat" (
+    start "ComfyUI Server" /min cmd /c "%LOCALAPPDATA%\FM Newgen Generator\ComfyUI_windows_portable\run_nvidia_gpu.bat"
+    echo [Success] Embedded ComfyUI launch triggered. Waiting 5 seconds for server boot...
+    timeout /t 5 >nul
+) else if exist "%USERPROFILE%\ComfyUI\run_nvidia_gpu.bat" (
     start "ComfyUI Server" /min cmd /c "%USERPROFILE%\ComfyUI\run_nvidia_gpu.bat"
     echo [Success] ComfyUI launch triggered. Waiting 5 seconds for server boot...
     timeout /t 5 >nul
 ) else (
-    echo [WARNING] ComfyUI launcher not found at '%USERPROFILE%\ComfyUI\run_nvidia_gpu.bat'.
-    echo Please make sure ComfyUI is running manually.
+    echo [Info] ComfyUI will be auto-started by the application if installed, or start it manually.
     echo.
 )
 

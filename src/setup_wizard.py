@@ -398,16 +398,17 @@ class SetupWizard:
 
     # -- UI helpers ---------------------------------------------------------
     def _set_line(self, line, text, color=None):
-        line.config(text=text, fg=color or self.fg_light)
+        self.root.after(0, lambda: line.config(text=text, fg=color or self.fg_light))
 
     def _log(self, msg):
-        self.detail_lbl.config(text=msg[:160])
+        self.root.after(0, lambda: self.detail_lbl.config(text=msg[:160]))
 
     def _set_progress(self, fraction, label=""):
-        self.progress["value"] = min(1.0, max(0.0, fraction))
-        if label:
-            self.progress_lbl.config(text=label)
-        self.root.update_idletasks()
+        def _apply():
+            self.progress["value"] = min(1.0, max(0.0, fraction))
+            if label:
+                self.progress_lbl.config(text=label)
+        self.root.after(0, _apply)
 
     def _disable_actions(self):
         self.next_btn.config(state="disabled")
@@ -472,27 +473,22 @@ class SetupWizard:
             os.makedirs(install_root(), exist_ok=True)
 
             # 1. System checks
-            self.root.after(0, lambda: self._set_line(
-                self.line1, "1. Checking your system…", self.color_accent))
+            self._set_line(self.line1, "1. Checking your system…", self.color_accent)
             gpu = detect_nvidia_gpu()
             free = free_disk_gb(install_root())
             if free < REQUIRED_DISK_GB:
                 raise RuntimeError(
                     f"Only {free:.1f} GB free disk space — need at least "
-                    f"{REQUIRED_DISK_GB} GB.")
+                    f"{REQUIRED_DISK_GB} GB for downloading, unpacking archives, and installing the AI engine + model.")
             if not gpu:
                 self._log("No NVIDIA GPU detected — generation will fall back "
                           "to CPU (slow). You can still continue.")
             else:
                 self._log(f"GPU found: {gpu}"[:160])
-            self.root.after(0, lambda: self._set_line(
-                self.line1, "1. System check passed — ready to install",
-                self.color_success))
+            self._set_line(self.line1, "1. System check passed — ready to install", self.color_success)
 
             # 2. ComfyUI portable
-            self.root.after(0, lambda: self._set_line(
-                self.line2, "2. Downloading ComfyUI (AI engine, ~2 GB)",
-                self.color_accent))
+            self._set_line(self.line2, "2. Downloading ComfyUI (AI engine, ~2 GB)", self.color_accent)
             if not _comfy_ok():
                 if os.path.isdir(comfyui_root()):
                     self._log("Existing ComfyUI folder is incomplete — "
@@ -504,19 +500,16 @@ class SetupWizard:
                     progress_cb=self._comfy_progress,
                     cancel_event=self.cancel_event)
                 if not ok:
-                    self.status_lbl.config(text="Setup cancelled.", fg=self.color_warning)
+                    self.root.after(0, lambda: self.status_lbl.config(text="Setup cancelled.", fg=self.color_warning))
                     return
                 self._set_progress(0, "Extracting ComfyUI…")
                 self._log("Extracting (this can take a few minutes)…")
                 extract_7z(archive, install_root())
                 os.unlink(archive)
-            self.root.after(0, lambda: self._set_line(
-                self.line2, "2. ComfyUI installed ✓", self.color_success))
+            self._set_line(self.line2, "2. ComfyUI installed ✓", self.color_success)
 
             # 3. Checkpoint
-            self.root.after(0, lambda: self._set_line(
-                self.line3, "3. Downloading the realism model (~7 GB)",
-                self.color_accent))
+            self._set_line(self.line3, "3. Downloading the realism model (~7 GB)", self.color_accent)
             if not _checkpoint_ok():
                 if os.path.exists(checkpoint_dest()):
                     self._log("Existing model file is truncated — re-downloading.")
@@ -543,18 +536,15 @@ class SetupWizard:
                         progress_cb=self._model_progress,
                         cancel_event=self.cancel_event)
                     if not ok:
-                        self.status_lbl.config(text="Setup cancelled.", fg=self.color_warning)
+                        self.root.after(0, lambda: self.status_lbl.config(text="Setup cancelled.", fg=self.color_warning))
                         return
-            self.root.after(0, lambda: self._set_line(
-                self.line3, "3. Realism model installed ✓", self.color_success))
+            self._set_line(self.line3, "3. Realism model installed ✓", self.color_success)
 
             # 4. Write config.json
-            self.root.after(0, lambda: self._set_line(
-                self.line4, "4. Linking everything together…", self.color_accent))
+            self._set_line(self.line4, "4. Linking everything together…", self.color_accent)
             self._write_config()
             self._drop_marker()
-            self.root.after(0, lambda: self._set_line(
-                self.line4, "4. Setup complete ✓", self.color_success))
+            self._set_line(self.line4, "4. Setup complete ✓", self.color_success)
             self._set_progress(1.0, "Done")
 
             self.root.after(0, self._finish)
@@ -617,15 +607,18 @@ class SetupWizard:
             "comfyui_negative_prompt": "wrinkles, full body, crossed arms, hands, legs, lower body, background scenery, grass, soccer field, training pitch, trees, crowd, text, brand logos, badges, graphics, distorted logos, deformed crests, deformed apparel, waxy skin, CGI, 3D render, cartoon, illustration, drawing, digital art, makeup, smooth skin, airbrushed, blurred eyes, double chin, out of focus",
             "comfyui_steps": 25,
             "comfyui_cfg": 6.0,
-            "comfyui_sampler": "euler",
+            "comfyui_sampler": "euler_a",
             "comfyui_scheduler": "karras",
             "comfyui_width": 896,
             "comfyui_height": 1152,
             "comfyui_install_dir": comfyui_root(),
             "uid_prefix": "2",
         }
-        with open(config_path(), "w", encoding="utf-8") as f:
+        cfg_file = config_path()
+        tmp_file = f"{cfg_file}.tmp.{os.getpid()}"
+        with open(tmp_file, "w", encoding="utf-8") as f:
             json.dump(cfg, f, indent=2)
+        os.replace(tmp_file, cfg_file)
 
     def _finish(self):
         self.status_lbl.config(

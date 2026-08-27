@@ -2,7 +2,17 @@ import os
 import re
 import random
 from html.parser import HTMLParser
-from striprtf.striprtf import rtf_to_text
+
+try:
+    from striprtf.striprtf import rtf_to_text
+except ImportError:
+    def rtf_to_text(rtf):
+        # Fallback regex-based RTF text extraction when striprtf is not installed
+        text = re.sub(r'{\\colortbl[^}]+}', '', rtf)
+        text = re.sub(r'{\\fonttbl[^}]+}', '', text)
+        text = re.sub(r'\\[a-z0-9\-]+ ?', ' ', text)
+        text = re.sub(r'[{}]', '', text)
+        return text
 
 # FIFA/FM 3-Letter Country Code to Nationality Details
 COUNTRY_MAP = {
@@ -263,7 +273,7 @@ class PlayerParser:
         if not rows:
             return []
 
-        headers = [h.lower() for h in rows[0]]
+        headers = [h.lower().strip() for h in rows[0]]
 
         uid_idx = PlayerParser._find_column_index(headers, ["id", "uid", "unique id", "player id", "fm id"])
         name_idx = PlayerParser._find_column_index(headers, ["name", "player name", "player"])
@@ -279,6 +289,13 @@ class PlayerParser:
                 "with '2')."
             )
 
+        def _clean_str(val, max_len=64):
+            if not val:
+                return ""
+            # Strip control / unprintable chars and truncate
+            cleaned = re.sub(r'[\r\n\t\x00-\x1f\x7f-\x9f]', ' ', str(val)).strip()
+            return cleaned[:max_len]
+
         players = []
         for row in rows[1:]:
             if len(row) <= uid_idx:
@@ -290,13 +307,19 @@ class PlayerParser:
             if uid_prefix and not uid.startswith(uid_prefix):
                 continue
 
+            raw_name = row[name_idx] if name_idx != -1 and len(row) > name_idx else "Unknown Newgen"
+            raw_nat = row[nat_idx] if nat_idx != -1 and len(row) > nat_idx else ""
+            raw_sec_nat = row[sec_nat_idx] if sec_nat_idx != -1 and len(row) > sec_nat_idx else ""
+            raw_age = row[age_idx] if age_idx != -1 and len(row) > age_idx else "16"
+            raw_pers = row[pers_idx] if pers_idx != -1 and len(row) > pers_idx else "Balanced"
+
             player = {
                 "uid": uid,
-                "name": row[name_idx] if name_idx != -1 and len(row) > name_idx else "Unknown Newgen",
-                "nat": row[nat_idx] if nat_idx != -1 and len(row) > nat_idx else "",
-                "sec_nat": row[sec_nat_idx] if sec_nat_idx != -1 and len(row) > sec_nat_idx else "",
-                "age": row[age_idx] if age_idx != -1 and len(row) > age_idx else "16",
-                "personality": row[pers_idx] if pers_idx != -1 and len(row) > pers_idx else "Balanced"
+                "name": _clean_str(raw_name, 64) or "Unknown Newgen",
+                "nat": _clean_str(raw_nat, 16),
+                "sec_nat": _clean_str(raw_sec_nat, 16),
+                "age": _clean_str(raw_age, 8) or "16",
+                "personality": _clean_str(raw_pers, 48) or "Balanced"
             }
             players.append(player)
 
@@ -337,10 +360,26 @@ class PlayerParser:
 
     @staticmethod
     def _find_column_index(headers, variants):
+        """
+        Two-pass header matching:
+        1. Exact match across all headers (e.g. "nat" matches exact "nat").
+        2. Word-boundary regex match (e.g. \b(player id)\b), preventing substrings
+           like "2nd nat" from matching a search for "nat" or "valid" matching "id".
+        """
+        # Pass 1: Strict equality
         for variant in variants:
+            v_lower = variant.lower()
             for idx, header in enumerate(headers):
-                if header == variant or variant in header:
+                if header == v_lower:
                     return idx
+
+        # Pass 2: Word boundary regex
+        for variant in variants:
+            pattern = re.compile(rf"\b{re.escape(variant.lower())}\b", re.IGNORECASE)
+            for idx, header in enumerate(headers):
+                if pattern.search(header):
+                    return idx
+
         return -1
 
 class PromptBuilder:
@@ -348,6 +387,8 @@ class PromptBuilder:
     def build_prompt(player, prompt_template):
         """
         Creates a custom prompt based on the player details and the base template.
+        Uses an isolated random.Random instance seeded by UID to avoid contaminating
+        the global random state and to guarantee reproducible features across age milestones.
         """
         uid = player["uid"]
         age = player["age"]
@@ -360,26 +401,26 @@ class PromptBuilder:
         nat_name = nat_info["adjective"]
         region = nat_info["region"]
 
-        # Step 2: Establish the base seed from UID to keep features consistent
-        # We pass the seed as a hash parameter in generator.py
-        random.seed(int(uid))
+        # Step 2: Establish the isolated RNG instance from UID
+        seed_val = int(uid) if uid.isdigit() else hash(uid) & 0xFFFFFFFF
+        rng = random.Random(seed_val)
 
         # Step 3: Choose demographic features based on weights (Weighted Demographics)
         preset_region = region
         if nat_code in DEMOGRAPHIC_WEIGHTS:
             choices = DEMOGRAPHIC_WEIGHTS[nat_code]
             weights = [c["weight"] for c in choices]
-            selected = random.choices(choices, weights=weights, k=1)[0]
+            selected = rng.choices(choices, weights=weights, k=1)[0]
             preset_region = selected["preset"]
 
         # Select a style profile from the regional presets
         preset_list = REGIONAL_PRESETS.get(preset_region, REGIONAL_PRESETS["WEST_EUROPE"])
-        profile = random.choice(preset_list)
+        profile = rng.choice(preset_list)
         
         # Pick physical attributes
         skin_tone = profile["skin"]
-        hair_color = random.choice(profile["hair"])
-        eye_color = random.choice(profile["eyes"])
+        hair_color = rng.choice(profile["hair"])
+        eye_color = rng.choice(profile["eyes"])
 
         # Step 4: Handle Ancestry / Dual Nationality
         ancestry_desc = ""
@@ -398,7 +439,7 @@ class PromptBuilder:
         elif any(p in personality for p in ["temperamental", "confrontational", "outspoken", "unambitious", "slack"]):
             personality_details = "stern serious look, slightly messy haircut, intense eyes, rugged appearance"
             # 20% chance of a minor scar for aggressive players
-            if random.random() < 0.2:
+            if rng.random() < 0.2:
                 personality_details += ", small faint scar on cheek"
         # Happy/Warm personalities
         elif any(p in personality for p in ["jovial", "spirited", "charismatic"]):
@@ -408,18 +449,18 @@ class PromptBuilder:
         age_int = int(age) if age.isdigit() else 16
         beard_style = "clean-shaven"
         
-        # Milestone updates
-        if age_int >= 20:
-            # High beard density probability for Mediterranean, Middle East, South America
-            if preset_region in ["MIDDLE_EAST", "SOUTH_EUROPE", "SOUTH_AMERICA"]:
-                beard_style = random.choice(["thick heavy stubble", "light beard", "clean-shaven"])
-            else:
-                beard_style = random.choice(["light stubble", "clean-shaven"])
+        # Milestone updates (properly mutually exclusive to avoid overwriting)
         if age_int >= 24:
             if preset_region in ["MIDDLE_EAST", "SOUTH_EUROPE", "SOUTH_AMERICA"]:
-                beard_style = random.choice(["full well-groomed beard", "thick beard", "light stubble"])
+                beard_style = rng.choice(["full well-groomed beard", "thick beard", "light stubble"])
             else:
-                beard_style = random.choice(["short trimmed beard", "light stubble", "clean-shaven"])
+                beard_style = rng.choice(["short trimmed beard", "light stubble", "clean-shaven"])
+        elif age_int >= 20:
+            # High beard density probability for Mediterranean, Middle East, South America
+            if preset_region in ["MIDDLE_EAST", "SOUTH_EUROPE", "SOUTH_AMERICA"]:
+                beard_style = rng.choice(["thick heavy stubble", "light beard", "clean-shaven"])
+            else:
+                beard_style = rng.choice(["light stubble", "clean-shaven"])
 
         # Combine all physical details into a cohesive player description
         player_desc = f"{skin_tone}, {hair_color}, {eye_color}, {beard_style}, {personality_details}{ancestry_desc}"
@@ -429,10 +470,10 @@ class PromptBuilder:
         prompt = prompt.replace("[AGE]", str(age))
         prompt = prompt.replace("[NATIONALITY]", nat_name)
 
-        # Adjust terms for young players (under 20) to prevent the AI from generating mature adult looks
+        # Adjust terms for young players (under 20) using safe word boundaries
         if age_int < 20:
-            prompt = prompt.replace("male", "teenage male")
-            prompt = prompt.replace("football player", "youth academy soccer player")
+            prompt = re.sub(r'\bmale\b', 'teenage male', prompt)
+            prompt = re.sub(r'\bfootball player\b', 'youth academy soccer player', prompt)
             youthful_desc = f"{player_desc}, soft youthful facial features, smooth skin"
             prompt = prompt.replace("[PERSONALITY]", youthful_desc)
         else:

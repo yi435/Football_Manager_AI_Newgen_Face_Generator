@@ -4,7 +4,14 @@ import uuid
 import asyncio
 import time
 import urllib.parse
+import ssl
 import aiohttp
+
+try:
+    import certifi
+    _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+except Exception:
+    _SSL_CONTEXT = ssl.create_default_context()
 
 # Default negative prompt tuned for photorealistic SDXL face generation
 DEFAULT_NEGATIVE_PROMPT = (
@@ -33,7 +40,7 @@ async def wait_for_comfyui(base_url, timeout=120, session=None, cancel_check=Non
 
     async def _up(s):
         try:
-            async with s.get(f"{base_url}/system_stats", timeout=3, ssl=False) as r:
+            async with s.get(f"{base_url}/system_stats", timeout=3) as r:
                 return r.status == 200
         except Exception:
             return False
@@ -93,7 +100,7 @@ class FaceGenerator:
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(f"{self.comfyui_base_url}/system_stats",
-                                       timeout=10, ssl=False) as resp:
+                                       timeout=10) as resp:
                     if resp.status == 200:
                         return True, f"ComfyUI server reachable at {self.comfyui_base_url}"
                     return False, f"ComfyUI server returned HTTP {resp.status}"
@@ -105,7 +112,7 @@ class FaceGenerator:
         """
         Downloads a face using the configured provider.
         """
-        ckpt = checkpoint or self._resolved_checkpoint or self.comfyui_model or "v1-5-pruned-emaonly.safetensors"
+        ckpt = checkpoint or self._resolved_checkpoint or self.comfyui_model or "RealVisXL_V5.0_fp16.safetensors"
         return await self.download_face_comfy(session, uid, prompt, ckpt)
 
     # ------------------------------------------------------------------
@@ -165,7 +172,7 @@ class FaceGenerator:
             try:
                 # 1. Submit the workflow
                 async with session.post(f"{self.comfyui_base_url}/prompt",
-                                        json=payload, timeout=60, ssl=False) as resp:
+                                        json=payload, timeout=60) as resp:
                     if resp.status != 200:
                         body = await resp.text()
                         return {"uid": uid, "status": "failed",
@@ -183,7 +190,7 @@ class FaceGenerator:
                     try:
                         async with session.get(
                                 f"{self.comfyui_base_url}/history/{urllib.parse.quote(prompt_id)}",
-                                timeout=30, ssl=False) as resp:
+                                timeout=30) as resp:
                             history = await resp.json()
                     except Exception:
                         continue
@@ -209,7 +216,7 @@ class FaceGenerator:
                             f"&subfolder={urllib.parse.quote(img.get('subfolder', ''))}"
                             f"&type={img.get('type', 'output')}"
                         )
-                        async with session.get(view_url, timeout=60, ssl=False) as resp:
+                        async with session.get(view_url, timeout=60) as resp:
                             content = await resp.read()
 
                         filepath = os.path.join(self.graphics_dir, f"{uid}.png")
@@ -248,12 +255,12 @@ class FaceGenerator:
         try:
             async with session.get(
                     f"{self.comfyui_base_url}/object_info/CheckpointLoaderSimple",
-                    timeout=30, ssl=False) as resp:
+                    timeout=30) as resp:
                 info = await resp.json()
             names = info["CheckpointLoaderSimple"]["input"]["required"]["ckpt_name"][0]
-            checkpoint = names[0] if names else "v1-5-pruned-emaonly.safetensors"
+            checkpoint = names[0] if names else "RealVisXL_V5.0_fp16.safetensors"
         except Exception:
-            checkpoint = "v1-5-pruned-emaonly.safetensors"
+            checkpoint = "RealVisXL_V5.0_fp16.safetensors"
 
         self._resolved_checkpoint = checkpoint
         return checkpoint
