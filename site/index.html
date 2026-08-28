@@ -384,11 +384,21 @@
 
   .ph {
     position: relative;
-    aspect-ratio: 4 / 5;
     border-radius: var(--radius-xl);
     overflow: hidden;
     background: repeating-conic-gradient(#1a1a20 0% 25%, #22222a 0% 50%) 50% / 24px 24px;
     border: 1px solid var(--color-border);
+  }
+
+  .gallery .ph {
+    aspect-ratio: 4 / 5;
+  }
+
+  .gallery .ph img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .ph img {
@@ -437,6 +447,24 @@
     text-align: center;
   }
 
+  .ba .ph {
+    aspect-ratio: auto;
+    min-height: 240px;
+    background: var(--color-surface-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-sm);
+  }
+
+  .ba .ph img {
+    max-width: 100%;
+    max-height: 320px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+
   .ba .card h3 {
     margin-bottom: var(--space-md);
     font-size: 15px;
@@ -464,7 +492,20 @@
   }
 
   .shot .ph {
-    aspect-ratio: 16 / 9;
+    aspect-ratio: auto;
+    background: var(--color-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .shot .ph img {
+    width: 100%;
+    height: auto;
+    max-height: 680px;
+    object-fit: contain;
+    display: block;
   }
 
   .shot.wide .ph.missing::before {
@@ -805,9 +846,9 @@
     <h2>See it in <span>action</span></h2>
     <p class="sec-sub">Every face is generated locally on your GPU, then mapped straight into your Football Manager save via config.xml.</p>
     <div class="gallery">
-      <figure><div class="ph"><img src="img/sample-1.jpg" alt="Sample generated newgen face - France" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · France U19</figcaption></figure>
-      <figure><div class="ph"><img src="img/sample-2.jpg" alt="Sample generated newgen face - Brazil" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · Brazil U20</figcaption></figure>
-      <figure><div class="ph"><img src="img/sample-3.jpg" alt="Sample generated newgen face - England" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · England U18</figcaption></figure>
+      <figure><div class="ph"><img src="img/sample-1.jpg" alt="Sample generated newgen face - France" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · FRANCE AGE:17</figcaption></figure>
+      <figure><div class="ph"><img src="img/sample-2.jpg" alt="Sample generated newgen face - Brazil" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · SPAIN AGE:23</figcaption></figure>
+      <figure><div class="ph"><img src="img/sample-3.jpg" alt="Sample generated newgen face - England" loading="lazy" onerror="this.parentNode.classList.add('missing')"></div><figcaption>Newgen · PORTUGAL AGE:23</figcaption></figure>
     </div>
     <div class="ba">
       <div class="card before">
@@ -837,31 +878,31 @@
 <section id="what">
   <div class="wrap">
     <h2>What it <span>does</span></h2>
-    <p class="sec-sub">Six powerful features built for realism, immersion, and seamless save integration.</p>
+    <p class="sec-sub">Everything you need to bring realistic youth academy faces into Football Manager.</p>
     <div class="grid">
       <div class="card compact">
-        <h3>🎨 Realistic Academy Faces</h3>
-        <p>Photorealistic headshots on a clean media-day studio background — no distorted crests, no pitch background, no waxy AI look.</p>
+        <h3>🎨 Realistic Newgen Portraits</h3>
+        <p>Generates photorealistic headshots tailored to each player's age, nationality, and ethnicity.</p>
       </div>
       <div class="card compact">
-        <h3>⚡ Auto-Watcher &amp; Batch</h3>
-        <p>Point the app at your exports once. New youth intakes are detected and facepacks are generated automatically in the background.</p>
+        <h3>⚡ Automatic Save Integration</h3>
+        <p>Watches your export folder and automatically produces game-ready facepacks and <code>config.xml</code> files.</p>
       </div>
       <div class="card compact">
         <h3>🌱 Milestone-Based Aging</h3>
-        <p>Preserves exact facial bone structure while updating hair, facial stubble, and maturity markers across ages 16, 20, 24, and 28.</p>
+        <p>Players age realistically across milestone years (16, 20, 24, 28) while preserving recognizable facial structure.</p>
       </div>
       <div class="card compact">
         <h3>🎮 FM24 &amp; FM26 Support</h3>
-        <p>Reads classic <em>Ctrl+P</em> text exports on FM24 and seamlessly ingests CSV/HTML from the free FM26 Player Export plugin.</p>
+        <p>Works smoothly with Football Manager 2024 (text exports) and Football Manager 2026 (CSV exports).</p>
       </div>
       <div class="card compact">
-        <h3>⚙️ Custom Face Styles</h3>
-        <p>Raw prompt tuning modal lets you customize positive/negative prompts, SDXL sampling steps, CFG scale, and model checkpoints.</p>
+        <h3>🔒 100% Free &amp; Offline</h3>
+        <p>Runs entirely on your local GPU. Zero subscriptions, zero cloud costs, and complete offline privacy.</p>
       </div>
       <div class="card compact">
-        <h3>🔒 100% Local &amp; Private</h3>
-        <p>Runs entirely on your local NVIDIA GPU using bundled ComfyUI. Zero API keys, zero cloud fees, and completely offline.</p>
+        <h3>🛡️ Real Facepacks Safe</h3>
+        <p>Stores faces in a separate graphics folder, leaving your real-player facepacks completely untouched.</p>
       </div>
     </div>
   </div>
@@ -957,10 +998,6 @@
     <div class="card" style="margin-bottom:14px;">
       <h3>🎮 Does it work with Football Manager 2026?</h3>
       <p>Yes. Because FM26 removed the native text export, the generator reads CSV/HTML from the free <strong>FM26 Player Export</strong> plugin (BepInEx). Keep the ID column visible, press F9, and everything is handled automatically.</p>
-    </div>
-    <div class="card" style="margin-bottom:14px;">
-      <h3>🛡️ The FM26 plugin DLL is flagged by antivirus / Windows SmartScreen</h3>
-      <p>This is expected for unsigned third-party game DLLs. Right-click the file → <em>Properties → Unblock</em>, and add the <code>BepInEx\plugins\FM26PlayerExport</code> folder to antivirus exceptions if needed.</p>
     </div>
     <div class="card" style="margin-bottom:14px;">
       <h3>⚙️ What if ComfyUI status says "Offline"?</h3>
