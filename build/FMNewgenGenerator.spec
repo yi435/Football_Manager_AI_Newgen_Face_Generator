@@ -47,6 +47,8 @@ a = Analysis(
 
 pyz = PYZ(a.pure)
 
+VERSION = os.path.join(_SPEC_DIR, "version_info.txt")
+
 exe = EXE(
     pyz,
     a.scripts,
@@ -57,9 +59,10 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,          # GUI app (no console window)
     icon=ICON,
+    version=VERSION,
 )

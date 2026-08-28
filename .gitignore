@@ -23,6 +23,7 @@ build/*
 !build/FMNewgenGenerator.spec
 !build/icon.ico
 !build/make_icon.py
+!build/version_info.txt
 dist/
 *.spec.bak
 
