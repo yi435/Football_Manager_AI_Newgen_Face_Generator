@@ -32,6 +32,7 @@ test_*_face.jpg
 
 # Netlify CLI local state
 .netlify/
+.netlify
 
 # Site deploy output
 site/download/
@@ -40,9 +41,7 @@ site/download/
 .DS_Store
 Thumbs.db
 
-# Local Netlify folder
-.netlify
-
 # Private documentation & design library
 md files for the owner/
 DESIGN.md
+docs/
