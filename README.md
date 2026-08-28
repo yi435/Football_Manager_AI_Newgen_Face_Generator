@@ -18,9 +18,7 @@ The app watches your player-search exports, builds a unique prompt per player (a
 
 ## Screenshots
 
-*(Drop your screenshots into `docs/screenshots/` and reference them here, e.g. `![App UI](docs/screenshots/app-ui.png)`.)*
-
-| App (generating) | Result in FM |
+| App (Generating Batch) | Result in FM (Tactics Lineup) |
 |---|---|
 | ![App UI](docs/screenshots/app-ui.png) | ![Faces in FM](docs/screenshots/faces-in-fm.png) |
 
