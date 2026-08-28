@@ -36,6 +36,8 @@ a = Analysis(
         "src.generator",
         "src.xml_manager",
         "src.setup_wizard",
+        "src.shortcut",
+        "src.design",
     ],
     hookspath=[],
     runtime_hooks=[],
